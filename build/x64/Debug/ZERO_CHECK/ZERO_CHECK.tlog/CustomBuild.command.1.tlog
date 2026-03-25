@@ -1,0 +1,10 @@
+^D:\PROGRAMMING\CPP_ADEPT\LOWPOLY_VHS_HORROR\BUILD\CMAKEFILES\CA99C5C52A99AC096E4316A30E04B8D5\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/programming/cpp_adept/lowpoly_vhs_horror -BD:/programming/cpp_adept/lowpoly_vhs_horror/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/programming/cpp_adept/lowpoly_vhs_horror/build/vhs_horror.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

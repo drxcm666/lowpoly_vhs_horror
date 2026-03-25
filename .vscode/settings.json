@@ -1,0 +1,12 @@
+{
+    "cSpell.words": [
+        "raylib"
+    ],
+    "cmake.generator": "Visual Studio 18 2026",
+    "cmake.configureOnOpen": false,
+    "C_Cpp.default.compilerPath": "cl.exe",
+    "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+    "code-runner.executorMap": {
+        "cpp": "cmd /c \"set VSCMD=%ProgramFiles%\\Microsoft Visual Studio\\2026\\Community\\Common7\\Tools\\VsDevCmd.bat && if not exist \"\"%VSCMD%\"\" set VSCMD=%ProgramFiles%\\Microsoft Visual Studio\\2026\\BuildTools\\Common7\\Tools\\VsDevCmd.bat && if not exist \"\"%VSCMD%\"\" set VSCMD=%ProgramFiles%\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat && if not exist \"\"%VSCMD%\"\" set VSCMD=%ProgramFiles%\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat && if not exist \"\"%VSCMD%\"\" (echo Visual Studio Build Tools not found. Install MSVC C++ toolset. & exit /b 1) && call \"\"%VSCMD%\"\" -arch=x64 && cl /std:c++20 /EHsc /nologo \"\"$fileName\"\" /Fe:\"\"$fileNameWithoutExt.exe\"\" && \"\"$fileNameWithoutExt.exe\"\"\""
+    }
+}

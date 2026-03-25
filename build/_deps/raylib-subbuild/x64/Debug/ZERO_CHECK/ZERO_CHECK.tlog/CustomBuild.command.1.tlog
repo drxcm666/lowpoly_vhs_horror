@@ -1,0 +1,10 @@
+^D:\PROGRAMMING\CPP_ADEPT\LOWPOLY_VHS_HORROR\BUILD\_DEPS\RAYLIB-SUBBUILD\CMAKEFILES\F51CB2FBFA2CB260ECEF9C5CAD4B392E\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild -BD:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/raylib-populate.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

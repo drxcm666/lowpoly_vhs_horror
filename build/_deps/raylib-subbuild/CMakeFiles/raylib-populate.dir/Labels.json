@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/raylib-populate"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/f51cb2fbfa2cb260ecef9c5cad4b392e/raylib-populate.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/a2a0d5ea6fdad22363fc2427aa8135c9/raylib-populate-complete.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-build.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-configure.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-download.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-install.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-mkdir.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-patch.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-test.rule"
+		},
+		{
+			"file" : "D:/programming/cpp_adept/lowpoly_vhs_horror/build/_deps/raylib-subbuild/CMakeFiles/de28697017409fb7720321c286f5f9b6/raylib-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"raylib-populate"
+		],
+		"name" : "raylib-populate"
+	}
+}
