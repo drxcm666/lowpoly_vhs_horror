@@ -1,97 +1,170 @@
 #include "game.hpp"
-#include <cmath>
 
-Game::Game() : camera_{}, playerPosition_{0.0f, 0.0f, 0.0f}, eyeHeight_{1.7f},
-               yaw_{0.0f}, pitch_{0.0f}, maxPitch_{1.5f},
-               lookSensitivity_{0.003f}, moveSpeed_{5.0f}
+#include <cmath>
+#include <cstddef>
+
+Game::Game() : state_{GameState::START}
 {
-    syncCameraWithPlayer();
-    camera_.up = {0.0f, 1.0f, 0.0f};
-    camera_.fovy = 60.0f;
-    camera_.projection = CAMERA_PERSPECTIVE;
-    walls_.push_back({{10.0f, 2.0f, 0.0f}, {1.0f, 4.0f, 20.0f}});
-    walls_.push_back({{-10.0f, 2.0f, 0.0f}, {1.0f, 4.0f, 20.0f}});
-    walls_.push_back({{0.0f, 2.0f, 10.0f}, {20.0f, 4.0f, 1.0f}});
-    walls_.push_back({{0.0f, 2.0f, -10.0f}, {20.0f, 4.0f, 1.0f}});
+    Vector3 startPos = player_.getPosition();
+    scene_.loadLevelFromTextFile("assets/levels/room01.txt", startPos);
+    player_.setPosition(startPos);
+    player_.syncCamera();
+}
+
+float Game::getInteractionScore(const Vector3 &targetPos, float maxDistance) const
+{
+    float distance = std::sqrt(
+        (player_.getPosition().x - targetPos.x) * (player_.getPosition().x - targetPos.x) +
+        (player_.getPosition().z - targetPos.z) * (player_.getPosition().z - targetPos.z));
+
+    if (distance < maxDistance && distance > 0.001f)
+    {
+        float targetX = (targetPos.x - player_.getPosition().x) / distance;
+        float targetZ = (targetPos.z - player_.getPosition().z) / distance;
+
+        float forwardX = player_.getForwardVector().x;
+        float forwardZ = player_.getForwardVector().y;
+
+        return (targetX * forwardX + targetZ * forwardZ);
+    }
+
+    return -1.0f;
+}
+
+void Game::updatePlayerMovement(float dt)
+{
+    Vector2 wishDir = player_.getIntendedMoveDir();
+
+    float stepX = wishDir.x * player_.getMoveSpeed() * dt;
+    float stepZ = wishDir.y * player_.getMoveSpeed() * dt;
+
+    Vector3 currentPos = player_.getPosition();
+    float radius = player_.getRadius();
+
+    Vector3 testPosZ = {currentPos.x, currentPos.y, currentPos.z + stepZ};
+    if (!scene_.checkCollisionAllWalls(testPosZ, radius))
+        player_.applyMoveZ(stepZ);
+
+    Vector3 testPosX = {currentPos.x + stepX, currentPos.y, currentPos.z};
+    if (!scene_.checkCollisionAllWalls(testPosX, radius))
+        player_.applyMoveX(stepX);
+}
+
+void Game::updateTriggers()
+{
+    for (auto &trigger : scene_.getTriggers())
+    {
+        if (trigger.active)
+        {
+            float cornerX = trigger.position.x - trigger.size.x / 2.0f;
+            float cornerZ = trigger.position.z - trigger.size.z / 2.0f;
+            Rectangle triggerBox = {cornerX, cornerZ, trigger.size.x, trigger.size.z};
+            if (CheckCollisionCircleRec(
+                    {player_.getPosition().x, player_.getPosition().z}, player_.getRadius(), triggerBox))
+            {
+                scene_.isPowerOn_ = false;
+                trigger.active = false;
+            }
+        }
+    }
+}
+
+void Game::findFocusedTarget(int &outInteractableIndex, int &outDoorIndex)
+{
+    float bestScore = -1.0f;
+
+    auto &interactables = scene_.getInteractables();
+    for (std::size_t i = 0; i < interactables.size(); i++)
+    {
+        if (interactables[i].active)
+        {
+            float score = getInteractionScore(interactables[i].position, 2.0f);
+
+            if (score > 0.9f && score > bestScore)
+            {
+                bestScore = score;
+                outInteractableIndex = i;
+                outDoorIndex = -1;
+            }
+        }
+    }
+
+    auto &doors = scene_.getDoors();
+    for (std::size_t i = 0; i < doors.size(); i++)
+    {
+        if (!doors[i].isOpen)
+        {
+            float score = getInteractionScore(doors[i].position, 3.5f);
+
+            if (score > 0.8f && score > bestScore)
+            {
+                bestScore = score;
+                outDoorIndex = i;
+                outInteractableIndex = -1;
+            }
+        }
+    }
+}
+
+void Game::handleInteraction(int interactableIndex, int doorIndex)
+{
+    if (interactableIndex != -1)
+    {
+        currentPromt_ = scene_.getInteractables()[interactableIndex].promtText;
+
+        if (IsKeyPressed(KEY_E))
+        {
+            scene_.getInteractables()[interactableIndex].active = false;
+            state_ = GameState::FOUND_SWITCH;
+        }
+    }
+
+    if (doorIndex != -1)
+    {
+        if (!scene_.getDoors()[doorIndex].isOpen)
+        {
+            currentPromt_ = scene_.getDoors()[doorIndex].promtText;
+
+            if (IsKeyPressed(KEY_E))
+            {
+                scene_.getDoors()[doorIndex].isOpen = true;
+                state_ = GameState::ESCAPED;
+            }
+        }
+    }
 }
 
 void Game::update(float dt)
 {
-    Vector2 mouseDelta = GetMouseDelta();
-    yaw_ -= (mouseDelta.x) * lookSensitivity_;
-    pitch_ -= (mouseDelta.y) * lookSensitivity_;
-    float forwardX = sin(yaw_);
-    float forwardZ = cos(yaw_);
-    float rightX = sin(yaw_ - PI / 2);
-    float rightZ = cos(yaw_ - PI / 2);
-    float moveDirX{0.0f};
-    float moveDirZ{0.0f};
+    currentPromt_ = "";
 
-    if (pitch_ > maxPitch_)
-        pitch_ = maxPitch_;
-    if (pitch_ < -maxPitch_)
-        pitch_ = -maxPitch_;
+    player_.updateLook();
 
-    if (IsKeyDown(KEY_W))
-    {
-        moveDirZ += forwardZ;
-        moveDirX += forwardX;
-    }
-    if (IsKeyDown(KEY_S))
-    {
-        moveDirZ -= forwardZ;
-        moveDirX -= forwardX;
-    }
-    if (IsKeyDown(KEY_D))
-    {
-        moveDirZ += rightZ;
-        moveDirX += rightX;
-    }
-    if (IsKeyDown(KEY_A))
-    {
-        moveDirZ -= rightZ;
-        moveDirX -= rightX;
-    }
+    updatePlayerMovement(dt);
 
-    float length = std::sqrt(moveDirZ * moveDirZ + moveDirX * moveDirX);
-    if (length > 0.0f)
-    {
-        moveDirZ /= length;
-        moveDirX /= length;
-    }
+    player_.syncCamera();
 
-    playerPosition_.z += moveDirZ * moveSpeed_ * dt;
-    playerPosition_.x += moveDirX * moveSpeed_ * dt;
+    updateTriggers();
 
-    syncCameraWithPlayer();
+    int targetInteractableIndex = -1;
+    int targetDoorIndex = -1;
+    findFocusedTarget(targetInteractableIndex, targetDoorIndex);
+
+    handleInteraction(targetInteractableIndex, targetDoorIndex);
 }
 
 void Game::render() const
 {
-    BeginMode3D(camera_);
+    scene_.renderWorld(player_.getCamera());
 
-    DrawCube(Vector3{0.0f, -0.5f, 0.0f}, 20.0f, 1.0f, 20.0f, LIGHTGRAY);
-    for (const auto &i : walls_)
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+
+    DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
+
+    if (!currentPromt_.empty())
     {
-        DrawCube(i.position, i.size.x, i.size.y, i.size.z, GRAY);
+        int textWidth = MeasureText(currentPromt_.c_str(), 20);
+        DrawText(currentPromt_.c_str(), (screenWidth - textWidth) / 2, screenHeight / 2 - 40, 20, RAYWHITE);
     }
-
-    EndMode3D();
-}
-
-void Game::syncCameraWithPlayer()
-{
-    Vector3 eyePosition{playerPosition_.x,
-                        playerPosition_.y + eyeHeight_,
-                        playerPosition_.z};
-
-    camera_.position = eyePosition;
-
-    Vector3 direction{cos(pitch_) * sin(yaw_),
-                      sin(pitch_),
-                      cos(pitch_) * cos(yaw_)};
-
-    camera_.target = {eyePosition.x + direction.x,
-                      eyePosition.y + direction.y,
-                      eyePosition.z + direction.z};
 }

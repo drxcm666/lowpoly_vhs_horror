@@ -23,7 +23,7 @@ void App::run()
         game_->update(dt);
 
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(Color{1, 1, 3, 255});
         
         game_->render();
 

@@ -10,6 +10,12 @@
     <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\player.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\programming\cpp_adept\lowpoly_vhs_horror\CMakeLists.txt" />

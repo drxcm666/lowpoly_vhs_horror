@@ -13,6 +13,8 @@ add_executable(MyGame
     src/main.cpp
     src/app.cpp
     src/game.cpp
+    src/scene.cpp
+    src/player.cpp
 )
 
 

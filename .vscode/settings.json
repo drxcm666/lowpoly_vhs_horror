@@ -1,5 +1,7 @@
 {
     "cSpell.words": [
+        "interactables",
+        "Promt",
         "raylib"
     ],
     "cmake.generator": "Visual Studio 18 2026",

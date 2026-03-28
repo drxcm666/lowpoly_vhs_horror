@@ -10,7 +10,7 @@ private:
     std::unique_ptr<Game> game_;
 
 public:
-    App(int screenWidth = 1000, int screenHeight = 650);
+    App(int screenWidth = 1280, int screenHeight = 960);
     ~App();
     void run();
 };

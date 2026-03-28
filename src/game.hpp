@@ -1,30 +1,33 @@
 #pragma once
 
+#include "scene.hpp"
+#include "player.hpp"
+
 #include <raylib.h>
 
+#include <string>
 #include <vector>
 
-struct Wall
+enum class GameState
 {
-    Vector3 position;
-    Vector3 size;
+    START,
+    FOUND_SWITCH,
+    ESCAPED
 };
-
 
 class Game
 {
 private:
-    Camera3D camera_;
-    Vector3 playerPosition_;
-    float eyeHeight_;
-    float yaw_;
-    float pitch_;
-    const float maxPitch_;
-    float lookSensitivity_;
-    float moveSpeed_;
-    std::vector<Wall> walls_;
+    Scene scene_;
+    Player player_;
+    GameState state_;
+    std::string currentPromt_;
 
-    void syncCameraWithPlayer();
+    float getInteractionScore(const Vector3 &targetPos, float maxDistance) const;
+    void updatePlayerMovement(float dt);
+    void updateTriggers();
+    void findFocusedTarget(int &outInteractableIndex, int &outDoorIndex);
+    void handleInteraction(int interactableIndex, int doorIndex);
 
 public:
     Game();

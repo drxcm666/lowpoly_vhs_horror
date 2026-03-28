@@ -363,6 +363,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\main.cpp" />
     <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\app.cpp" />
     <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\game.cpp" />
+    <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\scene.cpp" />
+    <ClCompile Include="D:\programming\cpp_adept\lowpoly_vhs_horror\src\player.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
