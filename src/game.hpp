@@ -11,7 +11,8 @@
 enum class GameState
 {
     START,
-    FOUND_SWITCH,
+    FIRST_CONVERSATION,
+    NOISE,
     ESCAPED
 };
 
@@ -21,7 +22,10 @@ private:
     Scene scene_;
     Player player_;
     GameState state_;
-    std::string currentPromt_;
+    std::string currentPrompt_;
+    std::string objectiveText_;
+
+    static bool isDebugMode_;
 
     float getInteractionScore(const Vector3 &targetPos, float maxDistance) const;
     void updatePlayerMovement(float dt);
@@ -33,4 +37,6 @@ public:
     Game();
     void update(float dt);
     void render() const;
+    static bool getDebugMode() { return isDebugMode_; }
+    static void toggleDebugMode() { isDebugMode_ = !isDebugMode_; }
 };

@@ -4,10 +4,21 @@
 
 #include <vector>
 
+struct ModelInstance
+{
+    Model model;
+    Vector3 position;
+    Vector3 rotationAxis;
+    float rotationAngle;
+    Vector3 scale;
+    Color tint;
+    bool Culling{false};
+};
+
 class Scene
 {
 private:
-    std::vector<Wall> walls_;
+    std::vector<CollisionBlock> collisionBlocks_;
     std::vector<Door> doors_;
     std::vector<TriggerZone> triggers_;
     std::vector<Interactable> interactables_;
@@ -16,15 +27,7 @@ private:
     int levelWidthTiles_{0};
     int levelHeightTiles_{0};
 
-    Model gasModel_;
-    Model gasGlassModel_;
-    Model gasBushesModel_;
-    Model gasBushesModel0_;
-    Model gasBushesModel1_;
-    Model gasBushesModel2_;
-    Model gasBushesModel3_;
-    Model gasBushesModel4_;
-
+    std::vector<ModelInstance> models_;
     // Shader pipeline is temporarily disabled.
     // Shader lightingShader_;
     // int lightPosLoc_;
@@ -32,24 +35,18 @@ private:
     // int viewPosLoc_;
     // Vector3 lampPosition_;
 
-    Vector3 modelPosition_{20.0f, 0.0f, 20.0f};
-    Vector3 modelScale_;
-    float modelRotationAngle_;
-
-    bool checkCollisionSingleWall(const Vector3 &playerPos, const Wall &wall, float playerRadius) const;
+    void parseCollision(const std::string &path);
 
 public:
-    bool isPowerOn_{true};
-
     Scene() = default;
     ~Scene();
 
-    void loadLevelFromTextFile(const std::string &path, Vector3 &playerPosition);
-    bool checkCollisionAllWalls(const Vector3 &playerPos, float playerRadius) const;
-    void renderWorld(Camera3D camera) const;
+    void renderWorld(const Camera3D &camera, bool showDebug) const;
+    void loadEnvironment();
+    void loadCollisionFile(const std::string &path);
+    bool checkCollision(const Vector3 &playerPos, float playerRadius) const;
 
     std::vector<TriggerZone> &getTriggers() { return triggers_; }
     std::vector<Interactable> &getInteractables() { return interactables_; }
     std::vector<Door> &getDoors() { return doors_; }
 };
-

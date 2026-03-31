@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-Player::Player() : camera_{}, position_{0.0f, 0.0f, 0.0f}, eyeHeight_{1.7f},
+Player::Player() : camera_{}, position_{5.0f, 0.0f, 3.0f}, eyeHeight_{1.7f},
                yaw_{0.0f}, pitch_{0.0f}, maxPitch_{1.5f},
                lookSensitivity_{0.002f}, moveSpeed_{5.0f},
                radius_{0.4f}
@@ -24,11 +24,12 @@ void Player::updateLook()
         pitch_ = -maxPitch_;
 }
 
-Vector2 Player::getForwardVector() const
+Vector3 Player::getForwardVector() const
 {
-    return Vector2{
-        static_cast<float>(sin(yaw_)), 
-        static_cast<float>(cos(yaw_))
+    return Vector3{
+        static_cast<float>(cos(pitch_) * sin(yaw_)),
+        static_cast<float>(sin(pitch_)), 
+        static_cast<float>(cos(pitch_) * cos(yaw_))
     };
 }
 
@@ -65,6 +66,13 @@ Vector2 Player::getIntendedMoveDir()
     {
         moveDirZ -= rightZ;
         moveDirX -= rightX;
+    }
+
+    if (IsKeyPressed(KEY_P))
+    {
+        TraceLog(LOG_INFO, "position x: %.3f", getPosition().x);
+        TraceLog(LOG_INFO, "position y: %.3f", getPosition().y);
+        TraceLog(LOG_INFO, "position z: %.3f", getPosition().z);
     }
 
     float length = std::sqrt(moveDirZ * moveDirZ + moveDirX * moveDirX);

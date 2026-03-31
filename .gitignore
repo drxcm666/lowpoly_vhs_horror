@@ -1,0 +1,42 @@
+# Build output
+/build/
+/out/
+/bin/
+/Debug/
+/Release/
+
+# CMake generated files
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+CMakeFiles/
+compile_commands.json
+Testing/
+Makefile
+
+# Visual Studio / MSVC
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.obj
+*.pdb
+*.idb
+*.ilk
+*.ipdb
+*.iobj
+*.tlog
+*.lastbuildstate
+*.recipe
+*.log
+*.tmp
+*.cache
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

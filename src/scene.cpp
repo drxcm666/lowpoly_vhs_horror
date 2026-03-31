@@ -2,244 +2,211 @@
 
 #include "rlgl.h"
 
-void Scene::loadLevelFromTextFile(const std::string &path, Vector3 &playerPosition)
-{
-    walls_.clear();
-    doors_.clear();
-    triggers_.clear();
-    interactables_.clear();
-    isPowerOn_ = true;
-
-    gasModel_ = LoadModel("assets/gas_station/gas.glb");
-    gasGlassModel_ = LoadModel("assets/gas_station/glass.glb");
-    gasBushesModel0_ = LoadModel("assets/gas_station/bushes0.glb");
-    gasBushesModel1_ = LoadModel("assets/gas_station/bushes1.glb");
-    gasBushesModel2_ = LoadModel("assets/gas_station/bushes2.glb");
-    gasBushesModel3_ = LoadModel("assets/gas_station/bushes3.glb");
-    gasBushesModel4_ = LoadModel("assets/gas_station/bushes4.glb");
-
-    // Shader pipeline is temporarily disabled.
-    // lightingShader_ = LoadShader("assets/gas_station/shaders/lighting.vs",
-    //                              "assets/gas_station/shaders/lighting.fs");
-    // lightPosLoc_ = GetShaderLocation(lightingShader_, "lightPos");
-    // lightColorLoc_ = GetShaderLocation(lightingShader_, "lightColor");
-    // viewPosLoc_ = GetShaderLocation(lightingShader_, "viewPos");
-    //
-    // for (int i = 0; i < gasModel_.materialCount; ++i)
-    // {
-    //     gasModel_.materials[i].shader = lightingShader_;
-    // }
-    //
-    // lampPosition_ = {25.0f, 5.0f, 25.0f};
-    // float lightColor[3] = {1.0f, 0.82f, 0.58f};
-    // SetShaderValue(lightingShader_, lightColorLoc_, lightColor, SHADER_UNIFORM_VEC3);
-
-    levelWidthTiles_ = 0;
-    levelHeightTiles_ = 0;
-
-    bool playerFound{false};
-
-    char *mapText = LoadFileText(path.c_str());
-    if (mapText == nullptr)
-    {
-        TraceLog(LOG_ERROR, "Map file not found");
-        return;
-    }
-
-    int i{0}, col{0}, row{0};
-
-    while (mapText[i] != '\0')
-    {
-        char cell = mapText[i];
-
-        switch (cell)
-        {
-        case '\n':
-            row++;
-            col = 0;
-            break;
-
-        case '.':
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-
-        case '#':
-        {
-            float worldZ = row * tileSize_;
-            float worldX = col * tileSize_;
-
-            walls_.push_back({{worldX, 2.0f, worldZ}, {tileSize_, tileSize_, tileSize_}});
-
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-        }
-
-        case 'P':
-        {
-            playerFound = true;
-
-            float worldZ = row * tileSize_;
-            float worldX = col * tileSize_;
-
-            playerPosition.z = worldZ;
-            playerPosition.x = worldX;
-
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-        }
-
-        case 'T':
-        {
-            float worldZ = row * tileSize_;
-            float worldX = col * tileSize_;
-
-            triggers_.push_back({{worldX, 1.0f, worldZ}, {1.0f, 1.0f, 1.0f}});
-
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-        }
-
-        case 'I':
-        {
-            float worldZ = row * tileSize_;
-            float worldX = col * tileSize_;
-
-            interactables_.push_back({{worldX, 1.0f, worldZ}, true, "Press E to interact"});
-
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-        }
-
-        case 'D':
-        {
-            float worldZ = row * tileSize_;
-            float worldX = col * tileSize_;
-
-            doors_.push_back({{worldX, 2.0f, worldZ},
-                              {tileSize_, tileSize_, tileSize_},
-                              false,
-                              "Press E to open door"});
-
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-        }
-
-        case '\r':
-            break;
-
-        default:
-            col++;
-            if (col > levelWidthTiles_)
-                levelWidthTiles_ = col;
-
-            if ((row + 1) > levelHeightTiles_)
-                levelHeightTiles_ = row + 1;
-
-            break;
-        }
-        i++;
-    }
-
-    UnloadFileText(mapText);
-    if (!playerFound)
-    {
-        TraceLog(LOG_ERROR, "Player start (P) not found. Using default");
-        playerPosition = {0.0f, 0.0f, 0.0f};
-    }
-}
+#include <sstream>
 
 Scene::~Scene()
 {
-    UnloadModel(gasModel_);
-    UnloadModel(gasGlassModel_);
-    UnloadModel(gasBushesModel0_);
-    UnloadModel(gasBushesModel1_);
-    UnloadModel(gasBushesModel2_);
-    UnloadModel(gasBushesModel3_);
-    UnloadModel(gasBushesModel4_);
     // UnloadShader(lightingShader_);
+
+    for (const auto &i : models_)
+        UnloadModel(i.model);
 }
 
-bool Scene::checkCollisionSingleWall(const Vector3 &playerPos, const Wall &wall, float playerRadius) const
+void Scene::loadEnvironment()
 {
-    float cornerX = wall.position.x - wall.size.x / 2.0f;
-    float cornerZ = wall.position.z - wall.size.z / 2.0f;
-    Rectangle wallBox = {cornerX, cornerZ, wall.size.x, wall.size.z};
+    for (const auto &i : models_)
+        UnloadModel(i.model);
 
-    return CheckCollisionCircleRec({playerPos.x, playerPos.z}, playerRadius, wallBox);
+    models_.clear();
+
+    Color nightTint = {95, 92, 105, 255};
+
+    ModelInstance gasModel{
+        LoadModel("assets/gas_station/gas.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        false};
+    models_.push_back(gasModel);
+
+    ModelInstance gasBushesModel0{
+        LoadModel("assets/gas_station/bushes0.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        true};
+    models_.push_back(gasBushesModel0);
+
+    ModelInstance gasBushesModel1{
+        LoadModel("assets/gas_station/bushes1.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        true};
+    models_.push_back(gasBushesModel1);
+
+    ModelInstance gasBushesModel2{
+        LoadModel("assets/gas_station/bushes2.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        true};
+    models_.push_back(gasBushesModel2);
+
+    ModelInstance gasBushesModel3{
+        LoadModel("assets/gas_station/bushes3.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        true};
+    models_.push_back(gasBushesModel3);
+
+    ModelInstance gasBushesModel4{
+        LoadModel("assets/gas_station/bushes4.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        true};
+    models_.push_back(gasBushesModel4);
+
+    ModelInstance gasGlassModel{
+        LoadModel("assets/gas_station/glass.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        false};
+
+    ModelInstance man{
+        LoadModel("assets/man/man.glb"),
+        {8.762f, 0.1f, -17.401f},
+        {0.0f, 1.0f, 0.0f},
+        220.0f,
+        {0.6f, 0.6f, 0.6f},
+        nightTint,
+        false};
+    models_.push_back(man);
+
+    models_.push_back(gasGlassModel);
 }
 
-bool Scene::checkCollisionAllWalls(const Vector3 &playerPos, float playerRadius) const
+bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
 {
-    for (const auto &wall : walls_)
+    for (const auto &block : collisionBlocks_)
     {
-        if (checkCollisionSingleWall(playerPos, wall, playerRadius))
+        float minX = block.position.x - block.size.x / 2.0f;
+        float maxX = block.position.x + block.size.x / 2.0f;
+        float minY = block.position.y - block.size.y / 2.0f;
+        float maxY = block.position.y + block.size.y / 2.0f;
+        float minZ = block.position.z - block.size.z / 2.0f;
+        float maxZ = block.position.z + block.size.z / 2.0f;
+
+        float closestX = (playerPos.x < minX) ? minX : (playerPos.x > maxX) ? maxX
+                                                                            : playerPos.x;
+        float closestY = (playerPos.y < minY) ? minY : (playerPos.y > maxY) ? maxY
+                                                                            : playerPos.y;
+        float closestZ = (playerPos.z < minZ) ? minZ : (playerPos.z > maxZ) ? maxZ
+                                                                            : playerPos.z;
+
+        float dx = playerPos.x - closestX;
+        float dy = playerPos.y - closestY;
+        float dz = playerPos.z - closestZ;
+        float distSquared = dx * dx + dy * dy + dz * dz;
+
+        if (distSquared < playerRadius * playerRadius)
             return true;
-    }
-
-    for (const auto &door : doors_)
-    {
-        if (!door.isOpen)
-        {
-            float cornerX = door.position.x - door.size.x / 2.0f;
-            float cornerZ = door.position.z - door.size.z / 2.0f;
-            Rectangle doorBox = {cornerX, cornerZ, door.size.x, door.size.z};
-
-            if (CheckCollisionCircleRec({playerPos.x, playerPos.z}, playerRadius, doorBox))
-                return true;
-        }
     }
 
     return false;
 }
 
-void Scene::renderWorld(Camera3D camera) const
+void Scene::loadCollisionFile(const std::string &path)
 {
-    float floorSizeZ{levelHeightTiles_ * tileSize_};
-    float floorSizeX{levelWidthTiles_ * tileSize_};
+    parseCollision(path);
+}
 
-    float floorCenterZ{((levelHeightTiles_ - 1) * tileSize_) / 2.0f};
-    float floorCenterX{((levelWidthTiles_ - 1) * tileSize_) / 2.0f};
+void Scene::parseCollision(const std::string &path)
+{
+    char *collisionText = LoadFileText(path.c_str());
+    if (collisionText == nullptr)
+    {
+        TraceLog(LOG_ERROR, "Collision file not found");
+        return;
+    }
 
-    Color wallColor = isPowerOn_ ? Fade(GRAY, 0.3f) : DARKGRAY;
-    Color floorColor = isPowerOn_ ? Fade(LIGHTGRAY, 0.3f) : GRAY;
+    collisionBlocks_.clear();
+    triggers_.clear();
+    interactables_.clear();
 
+    std::stringstream rowStream(collisionText);
+    std::string line;
+    while (std::getline(rowStream, line, '\n'))
+    {
+        if (line.empty() || line.substr(0, 2) == "//")
+            continue;
+
+        CollisionBlock block;
+
+        std::stringstream wordStream(line);
+        std::string word;
+        int wordIndex = 0;
+        while (wordStream >> word)
+        {
+            if (wordIndex == 0)
+                block.type = word;
+
+            else if (wordIndex == 1)
+                block.position.x = std::stof(word);
+
+            else if (wordIndex == 2)
+                block.position.y = std::stof(word);
+
+            else if (wordIndex == 3)
+                block.position.z = std::stof(word);
+
+            else if (wordIndex == 4)
+                block.size.x = std::stof(word);
+
+            else if (wordIndex == 5)
+                block.size.y = std::stof(word);
+
+            else if (wordIndex == 6)
+                block.size.z = std::stof(word);
+
+            wordIndex++;
+        }
+        collisionBlocks_.push_back(block);
+
+        if (block.type == "WORKER")
+        {
+            Interactable obj = {InteractiveType::Worker, block.position, true, "To talk"};
+            interactables_.push_back(obj);
+        }
+        if (block.type == "TRIGGER")
+        {
+            TriggerZone obj = {TriggerType::Noise, block.position, block.size, true};
+            triggers_.push_back(obj);
+        }
+    }
+
+    UnloadFileText(collisionText);
+}
+
+void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
+{
     // Shader uniforms are temporarily disabled.
     // float lampPosArray[3] = {lampPosition_.x, lampPosition_.y, lampPosition_.z};
     // SetShaderValue(lightingShader_, lightPosLoc_, lampPosArray, SHADER_UNIFORM_VEC3);
@@ -248,24 +215,26 @@ void Scene::renderWorld(Camera3D camera) const
 
     BeginMode3D(camera);
 
-    Color nightTint = {210, 205, 190, 255};
-    DrawModelEx(gasModel_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-
-    rlDisableBackfaceCulling();
-    rlDisableDepthMask();
-    DrawModelEx(gasBushesModel0_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-    DrawModelEx(gasBushesModel1_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-    DrawModelEx(gasBushesModel2_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-    DrawModelEx(gasBushesModel3_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-    DrawModelEx(gasBushesModel4_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-    rlEnableDepthMask();
-    rlEnableBackfaceCulling();
-
-    DrawModelEx(gasGlassModel_, {20.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 1.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, nightTint);
-
-    for (const auto &wall : walls_)
+    for (const auto &model : models_)
     {
-        DrawCube(wall.position, wall.size.x, wall.size.y, wall.size.z, wallColor);
+        if (model.Culling)
+        {
+            rlDisableBackfaceCulling();
+            rlDisableDepthMask();
+            DrawModelEx(model.model,
+                        model.position,
+                        model.rotationAxis,
+                        model.rotationAngle, model.scale, model.tint);
+            rlEnableDepthMask();
+            rlEnableBackfaceCulling();
+
+            continue;
+        }
+
+        DrawModelEx(model.model,
+                    model.position,
+                    model.rotationAxis,
+                    model.rotationAngle, model.scale, model.tint);
     }
 
     for (const auto &trigger : triggers_)
@@ -278,12 +247,12 @@ void Scene::renderWorld(Camera3D camera) const
         DrawText("TRIGGER", (int)textScreenPos.x, (int)textScreenPos.y, 20, c);
     }
 
-    for (const auto &inter : interactables_)
-    {
-        Color c = inter.active ? BLUE : Fade(BLUE, 0.4f);
-        Vector3 ipos = {inter.position.x, inter.position.y, inter.position.z};
-        DrawCubeWires(ipos, 1.0f, 1.0f, 1.0f, c);
-    }
+    // for (const auto &inter : interactables_)
+    // {
+    //     Color c = inter.active ? BLUE : Fade(BLUE, 0.4f);
+    //     Vector3 ipos = {inter.position.x, inter.position.y, inter.position.z};
+    //     DrawCubeWires(ipos, 1.0f, 1.0f, 1.0f, c);
+    // }
 
     for (const auto &door : doors_)
     {
@@ -291,7 +260,28 @@ void Scene::renderWorld(Camera3D camera) const
             DrawCube(door.position, door.size.x, door.size.y, door.size.z, BROWN);
     }
 
+    if (showDebug)
+    {
+        for (const auto &block : collisionBlocks_)
+        {
+            if (block.type == "WALL")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, GREEN);
+
+            if (block.type == "BORDERS")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, RED);
+
+            if (block.type == "TRIGGER")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, YELLOW);
+
+            if (block.type == "INTERACTIVE")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, PINK);
+
+            if (block.type == "ELSE")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, BLUE);
+        }
+    }
+
     EndMode3D();
 
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{0, 0, 0, 55});
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{0, 0, 0, 95});
 }

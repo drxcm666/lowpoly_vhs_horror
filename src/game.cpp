@@ -1,12 +1,16 @@
 #include "game.hpp"
+#include "scene.hpp"
 
 #include <cmath>
 #include <cstddef>
 
-Game::Game() : state_{GameState::START}
+bool Game::isDebugMode_ = false;
+
+Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas station"}
 {
     Vector3 startPos = player_.getPosition();
-    scene_.loadLevelFromTextFile("assets/levels/room01.txt", startPos);
+    scene_.loadCollisionFile("assets/levels/room01_collision.txt");
+    scene_.loadEnvironment();
     player_.setPosition(startPos);
     player_.syncCamera();
 }
@@ -14,18 +18,21 @@ Game::Game() : state_{GameState::START}
 float Game::getInteractionScore(const Vector3 &targetPos, float maxDistance) const
 {
     float distance = std::sqrt(
-        (player_.getPosition().x - targetPos.x) * (player_.getPosition().x - targetPos.x) +
-        (player_.getPosition().z - targetPos.z) * (player_.getPosition().z - targetPos.z));
+        (player_.getCamera().position.x - targetPos.x) * (player_.getCamera().position.x - targetPos.x) +
+        (player_.getCamera().position.z - targetPos.z) * (player_.getCamera().position.z - targetPos.z) +
+        (player_.getCamera().position.y - targetPos.y) * (player_.getCamera().position.y - targetPos.y));
 
     if (distance < maxDistance && distance > 0.001f)
     {
-        float targetX = (targetPos.x - player_.getPosition().x) / distance;
-        float targetZ = (targetPos.z - player_.getPosition().z) / distance;
+        float targetX = (targetPos.x - player_.getCamera().position.x) / distance;
+        float targetZ = (targetPos.z - player_.getCamera().position.z) / distance;
+        float targetY = (targetPos.y - player_.getCamera().position.y) / distance;
 
         float forwardX = player_.getForwardVector().x;
-        float forwardZ = player_.getForwardVector().y;
+        float forwardZ = player_.getForwardVector().z;
+        float forwardY = player_.getForwardVector().y;
 
-        return (targetX * forwardX + targetZ * forwardZ);
+        return (targetX * forwardX + targetZ * forwardZ + targetY * forwardY);
     }
 
     return -1.0f;
@@ -42,11 +49,11 @@ void Game::updatePlayerMovement(float dt)
     float radius = player_.getRadius();
 
     Vector3 testPosZ = {currentPos.x, currentPos.y, currentPos.z + stepZ};
-    if (!scene_.checkCollisionAllWalls(testPosZ, radius))
+    if (!scene_.checkCollision(testPosZ, radius))
         player_.applyMoveZ(stepZ);
 
     Vector3 testPosX = {currentPos.x + stepX, currentPos.y, currentPos.z};
-    if (!scene_.checkCollisionAllWalls(testPosX, radius))
+    if (!scene_.checkCollision(testPosX, radius))
         player_.applyMoveX(stepX);
 }
 
@@ -62,7 +69,6 @@ void Game::updateTriggers()
             if (CheckCollisionCircleRec(
                     {player_.getPosition().x, player_.getPosition().z}, player_.getRadius(), triggerBox))
             {
-                scene_.isPowerOn_ = false;
                 trigger.active = false;
             }
         }
@@ -89,33 +95,36 @@ void Game::findFocusedTarget(int &outInteractableIndex, int &outDoorIndex)
         }
     }
 
-    auto &doors = scene_.getDoors();
-    for (std::size_t i = 0; i < doors.size(); i++)
-    {
-        if (!doors[i].isOpen)
-        {
-            float score = getInteractionScore(doors[i].position, 3.5f);
+    // auto &doors = scene_.getDoors();
+    // for (std::size_t i = 0; i < doors.size(); i++)
+    // {
+    //     if (!doors[i].isOpen)
+    //     {
+    //         float score = getInteractionScore(doors[i].position, 3.5f);
 
-            if (score > 0.8f && score > bestScore)
-            {
-                bestScore = score;
-                outDoorIndex = i;
-                outInteractableIndex = -1;
-            }
-        }
-    }
+    //         if (score > 0.8f && score > bestScore)
+    //         {
+    //             bestScore = score;
+    //             outDoorIndex = i;
+    //             outInteractableIndex = -1;
+    //         }
+    //     }
+    // }
 }
 
 void Game::handleInteraction(int interactableIndex, int doorIndex)
 {
+    
     if (interactableIndex != -1)
     {
-        currentPromt_ = scene_.getInteractables()[interactableIndex].promtText;
+        currentPrompt_ = scene_.getInteractables()[interactableIndex].promptText;
 
-        if (IsKeyPressed(KEY_E))
+        if (IsKeyPressed(KEY_E) && 
+            (scene_.getInteractables()[interactableIndex].type == InteractiveType::Worker))
         {
             scene_.getInteractables()[interactableIndex].active = false;
-            state_ = GameState::FOUND_SWITCH;
+            state_ = GameState::NOISE;
+            objectiveText_ = "Check for strange noises near fuel pumps";
         }
     }
 
@@ -123,7 +132,7 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
     {
         if (!scene_.getDoors()[doorIndex].isOpen)
         {
-            currentPromt_ = scene_.getDoors()[doorIndex].promtText;
+            currentPrompt_ = scene_.getDoors()[doorIndex].promptText;
 
             if (IsKeyPressed(KEY_E))
             {
@@ -136,7 +145,10 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
 
 void Game::update(float dt)
 {
-    currentPromt_ = "";
+    currentPrompt_ = "";
+
+    if (IsKeyPressed(KEY_F3))
+        Game::toggleDebugMode();
 
     player_.updateLook();
 
@@ -155,16 +167,20 @@ void Game::update(float dt)
 
 void Game::render() const
 {
-    scene_.renderWorld(player_.getCamera());
+    scene_.renderWorld(player_.getCamera(), isDebugMode_);
 
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
 
     DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
 
-    if (!currentPromt_.empty())
+    if (!currentPrompt_.empty())
     {
-        int textWidth = MeasureText(currentPromt_.c_str(), 20);
-        DrawText(currentPromt_.c_str(), (screenWidth - textWidth) / 2, screenHeight / 2 - 40, 20, RAYWHITE);
+        int textWidth = MeasureText(currentPrompt_.c_str(), 20);
+        DrawText(currentPrompt_.c_str(), (screenWidth - textWidth) / 2, screenHeight / 2 - 40, 20, RAYWHITE);
+    }
+    if (!objectiveText_.empty())
+    {
+        DrawText(objectiveText_.c_str(), 30, 30, 20, GOLD);
     }
 }

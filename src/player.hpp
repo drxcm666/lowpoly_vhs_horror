@@ -32,5 +32,5 @@ public:
     const Camera3D &getCamera() const { return camera_; }
     const float getMoveSpeed() const { return moveSpeed_; }
 
-    Vector2 getForwardVector() const;
+    Vector3 getForwardVector() const;
 };
