@@ -1,0 +1,10 @@
+Music mus_background assets/music/background_1.mp3
+Music mus_refrigerator assets/music/refrigerator.mp3
+Sound sfx_footstep assets/music/footstep.mp3
+Music mus_radio assets/music/radio_1.mp3
+Music mus_cricket assets/music/cricket.mp3
+Sound sfx_bell assets/music/bell.mp3
+Music mus_store_sign assets/music/neon_store_sign.mp3
+Music mus_store_lamp assets/music/store_lamp.mp3
+Music mus_coffee_machine assets/music/coffee_machine.mp3
+Music mus_test assets/music/test.mp3

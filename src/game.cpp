@@ -4,15 +4,15 @@
 #include <cmath>
 #include <cstddef>
 
-bool Game::isDebugMode_ = false;
-
 Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas station"}
 {
     Vector3 startPos = player_.getPosition();
-    scene_.loadCollisionFile("assets/levels/room01_collision.txt");
+    scene_.parseCollision("assets/levels/room01_collision.txt");
     scene_.loadEnvironment();
     player_.setPosition(startPos);
     player_.syncCamera();
+    audioManager_.loadFromManifest("assets/music/audio_manifest.txt");
+    audioManager_.parseEmitters("assets/levels/emitters.txt");
 }
 
 float Game::getInteractionScore(const Vector3 &targetPos, float maxDistance) const
@@ -45,6 +45,13 @@ void Game::updatePlayerMovement(float dt)
     float stepX = wishDir.x * player_.getMoveSpeed() * dt;
     float stepZ = wishDir.y * player_.getMoveSpeed() * dt;
 
+    if (noclipEnabled_)
+    {
+        player_.applyMoveZ(stepZ);
+        player_.applyMoveX(stepX);
+        return;
+    }
+
     Vector3 currentPos = player_.getPosition();
     float radius = player_.getRadius();
 
@@ -61,17 +68,70 @@ void Game::updateTriggers()
 {
     for (auto &trigger : scene_.getTriggers())
     {
-        if (trigger.active)
+        float cornerX = trigger.position.x - trigger.size.x / 2.0f;
+        float cornerZ = trigger.position.z - trigger.size.z / 2.0f;
+
+        Rectangle triggerBox = {cornerX, cornerZ, trigger.size.x, trigger.size.z};
+        bool isInsideNow = CheckCollisionCircleRec(
+            {player_.getPosition().x, player_.getPosition().z}, player_.getRadius(), triggerBox);
+
+        if (isInsideNow && !trigger.wasInsideLastFrame &&
+            (trigger.type == TriggerType::FrontDoors || trigger.type == TriggerType::BackDoors))
         {
-            float cornerX = trigger.position.x - trigger.size.x / 2.0f;
-            float cornerZ = trigger.position.z - trigger.size.z / 2.0f;
-            Rectangle triggerBox = {cornerX, cornerZ, trigger.size.x, trigger.size.z};
-            if (CheckCollisionCircleRec(
-                    {player_.getPosition().x, player_.getPosition().z}, player_.getRadius(), triggerBox))
+            insideStore = !insideStore;
+
+            if (insideStore && trigger.type == TriggerType::FrontDoors)
             {
-                trigger.active = false;
+                audioManager_.playSound("sfx_bell");
             }
         }
+
+        if (isInsideNow && !trigger.wasInsideLastFrame)
+        {
+            if (trigger.type == TriggerType::Noise && state_ == GameState::NOISE)
+            {
+                objectiveText_ = "RUNNNNN";
+            }
+            // else if (trigger.type == TriggerType::FrontDoors || trigger.type == TriggerType::BackDoors)
+            // {
+            //     audioManager_.playMusic("mus_background");
+            //     audioManager_.playMusic("mus_cricket");
+            // }
+
+            trigger.active = false;
+        }
+
+        if (!isInsideNow)
+        {
+            trigger.wasInsideLastFrame = false;
+            trigger.active = true;
+        }
+        else
+            trigger.wasInsideLastFrame = true;
+    }
+
+    if (insideStore)
+    {
+        audioManager_.playEmitter("mus_refrigerator");
+        audioManager_.playEmitter("mus_radio");
+        audioManager_.playEmitter("mus_store_lamp");
+        audioManager_.playEmitter("mus_coffee_machine");
+        
+        audioManager_.stopMusic("mus_store_sign");
+        audioManager_.stopMusic("mus_background");
+        audioManager_.stopMusic("mus_crickets");
+    }
+    else
+    {
+        audioManager_.playEmitter("mus_store_sign");
+        audioManager_.playEmitter("mus_test");
+        audioManager_.playMusic("mus_background");
+        audioManager_.playMusic("mus_cricket");
+
+        audioManager_.stopMusic("mus_refrigerator");
+        audioManager_.stopMusic("mus_radio");
+        audioManager_.stopMusic("mus_store_lamp");
+        audioManager_.stopMusic("mus_coffee_machine");
     }
 }
 
@@ -94,32 +154,15 @@ void Game::findFocusedTarget(int &outInteractableIndex, int &outDoorIndex)
             }
         }
     }
-
-    // auto &doors = scene_.getDoors();
-    // for (std::size_t i = 0; i < doors.size(); i++)
-    // {
-    //     if (!doors[i].isOpen)
-    //     {
-    //         float score = getInteractionScore(doors[i].position, 3.5f);
-
-    //         if (score > 0.8f && score > bestScore)
-    //         {
-    //             bestScore = score;
-    //             outDoorIndex = i;
-    //             outInteractableIndex = -1;
-    //         }
-    //     }
-    // }
 }
 
 void Game::handleInteraction(int interactableIndex, int doorIndex)
 {
-    
     if (interactableIndex != -1)
     {
         currentPrompt_ = scene_.getInteractables()[interactableIndex].promptText;
 
-        if (IsKeyPressed(KEY_E) && 
+        if (IsKeyPressed(KEY_E) &&
             (scene_.getInteractables()[interactableIndex].type == InteractiveType::Worker))
         {
             scene_.getInteractables()[interactableIndex].active = false;
@@ -127,25 +170,16 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
             objectiveText_ = "Check for strange noises near fuel pumps";
         }
     }
-
-    if (doorIndex != -1)
-    {
-        if (!scene_.getDoors()[doorIndex].isOpen)
-        {
-            currentPrompt_ = scene_.getDoors()[doorIndex].promptText;
-
-            if (IsKeyPressed(KEY_E))
-            {
-                scene_.getDoors()[doorIndex].isOpen = true;
-                state_ = GameState::ESCAPED;
-            }
-        }
-    }
 }
 
 void Game::update(float dt)
 {
+    game_dt = dt;
+
     currentPrompt_ = "";
+
+    if (IsKeyPressed(KEY_K))
+        noclipEnabled_ = !noclipEnabled_;
 
     if (IsKeyPressed(KEY_F3))
         Game::toggleDebugMode();
@@ -163,6 +197,9 @@ void Game::update(float dt)
     findFocusedTarget(targetInteractableIndex, targetDoorIndex);
 
     handleInteraction(targetInteractableIndex, targetDoorIndex);
+
+    audioManager_.setListenerPosition(player_.getCamera().position);
+    audioManager_.update(dt);
 }
 
 void Game::render() const

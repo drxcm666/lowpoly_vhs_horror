@@ -2,6 +2,7 @@
 
 #include <raylib.h>
 
+#include <optional>
 #include <string>
 
 struct CollisionBlock
@@ -21,6 +22,8 @@ struct Door
 
 enum class TriggerType
 {
+    FrontDoors,
+    BackDoors,
     Noise,
 };
 
@@ -30,6 +33,7 @@ struct TriggerZone
     Vector3 position;
     Vector3 size;
     bool active{true};
+    bool wasInsideLastFrame{false};
 };
 
 enum class InteractiveType
@@ -44,3 +48,24 @@ struct Interactable
     bool active{true};
     std::string promptText;
 };
+
+struct AudioEmitter
+{
+    std::string name;
+    std::optional<Vector3> position;
+    float minDistance;
+    float maxDistance;
+    float timer{0.0f};
+    float minDelay{0.0f};
+    float maxDelay{0.0f};
+    bool active{false};
+};
+
+// struct AudioEmitter
+// {
+//     std::string name;
+//     Vector3 position;
+//     float minDistance;
+//     float maxDistance;
+//     bool active{false};
+// };

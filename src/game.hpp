@@ -2,6 +2,7 @@
 
 #include "scene.hpp"
 #include "player.hpp"
+#include "audio.hpp"
 
 #include <raylib.h>
 
@@ -22,10 +23,16 @@ private:
     Scene scene_;
     Player player_;
     GameState state_;
+    AudioManager audioManager_;
     std::string currentPrompt_;
     std::string objectiveText_;
 
-    static bool isDebugMode_;
+    float game_dt{};
+
+    bool insideStore{false};
+
+    bool isDebugMode_{true};
+    bool noclipEnabled_{false};
 
     float getInteractionScore(const Vector3 &targetPos, float maxDistance) const;
     void updatePlayerMovement(float dt);
@@ -37,6 +44,6 @@ public:
     Game();
     void update(float dt);
     void render() const;
-    static bool getDebugMode() { return isDebugMode_; }
-    static void toggleDebugMode() { isDebugMode_ = !isDebugMode_; }
+    bool getDebugMode() { return isDebugMode_; }
+    void toggleDebugMode() { isDebugMode_ = !isDebugMode_; }
 };

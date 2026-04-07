@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include "audio.hpp"
 
 #include "rlgl.h"
 
@@ -21,8 +22,19 @@ void Scene::loadEnvironment()
 
     Color nightTint = {95, 92, 105, 255};
 
+    ModelInstance sky{
+        LoadModel("assets/sky/sky.glb"),
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        0.0f,
+        {10.0f, 10.0f, 10.0f},
+        nightTint,
+        false,
+        false};
+    models_.push_back(sky);
+
     ModelInstance gasModel{
-        LoadModel("assets/gas_station/gas.glb"),
+        LoadModel("assets/gas_station/try.glb"),
         {0.0f, 0.0f, 0.0f},
         {0.0f, 0.0f, 1.0f},
         0.0f,
@@ -89,6 +101,7 @@ void Scene::loadEnvironment()
         {1.0f, 1.0f, 1.0f},
         nightTint,
         false};
+    models_.push_back(gasGlassModel);
 
     ModelInstance man{
         LoadModel("assets/man/man.glb"),
@@ -100,7 +113,11 @@ void Scene::loadEnvironment()
         false};
     models_.push_back(man);
 
-    models_.push_back(gasGlassModel);
+    // Mesh skyMesh = GenMeshSphere(20.0f, 64, 64);
+    // skyModel_ = LoadModelFromMesh(skyMesh);
+    // skyTexture_ = LoadTexture("assets/sky3.png");
+    // skyModel_.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = skyTexture_;
+    // skyModel_.materials[0].params[MATERIAL_MAP_METALNESS] = 0;
 }
 
 bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
@@ -133,11 +150,6 @@ bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
     return false;
 }
 
-void Scene::loadCollisionFile(const std::string &path)
-{
-    parseCollision(path);
-}
-
 void Scene::parseCollision(const std::string &path)
 {
     char *collisionText = LoadFileText(path.c_str());
@@ -162,7 +174,7 @@ void Scene::parseCollision(const std::string &path)
 
         std::stringstream wordStream(line);
         std::string word;
-        int wordIndex = 0;
+        int wordIndex{0};
         while (wordStream >> word)
         {
             if (wordIndex == 0)
@@ -200,6 +212,16 @@ void Scene::parseCollision(const std::string &path)
             TriggerZone obj = {TriggerType::Noise, block.position, block.size, true};
             triggers_.push_back(obj);
         }
+        if (block.type == "FRONT_DOORS")
+        {
+            TriggerZone obj = {TriggerType::FrontDoors, block.position, block.size, true};
+            triggers_.push_back(obj);
+        }
+        if (block.type == "BACK_DOORS")
+        {
+            TriggerZone obj = {TriggerType::BackDoors, block.position, block.size, true};
+            triggers_.push_back(obj);
+        }
     }
 
     UnloadFileText(collisionText);
@@ -230,29 +252,21 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
 
             continue;
         }
+        if (!model.positionLock)
+        {
+            DrawModelEx(model.model,
+                        camera.position,
+                        model.rotationAxis,
+                        model.rotationAngle, model.scale, model.tint);
+
+            continue;
+        }
 
         DrawModelEx(model.model,
                     model.position,
                     model.rotationAxis,
                     model.rotationAngle, model.scale, model.tint);
     }
-
-    for (const auto &trigger : triggers_)
-    {
-        Color c = trigger.active ? GREEN : Fade(RED, 0.4f);
-        Vector3 tpos = {trigger.position.x, trigger.position.y, trigger.position.z};
-        DrawCubeWires(tpos, trigger.size.x, trigger.size.y, trigger.size.z, c);
-
-        Vector2 textScreenPos = GetWorldToScreen({tpos.x, tpos.y + 1.2f, tpos.z}, camera);
-        DrawText("TRIGGER", (int)textScreenPos.x, (int)textScreenPos.y, 20, c);
-    }
-
-    // for (const auto &inter : interactables_)
-    // {
-    //     Color c = inter.active ? BLUE : Fade(BLUE, 0.4f);
-    //     Vector3 ipos = {inter.position.x, inter.position.y, inter.position.z};
-    //     DrawCubeWires(ipos, 1.0f, 1.0f, 1.0f, c);
-    // }
 
     for (const auto &door : doors_)
     {
@@ -273,10 +287,16 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
             if (block.type == "TRIGGER")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, YELLOW);
 
+            if (block.type == "FRONT_DOORS" || block.type == "BACK_DOORS")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, ORANGE);
+
             if (block.type == "INTERACTIVE")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, PINK);
 
             if (block.type == "ELSE")
+                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, BLUE);
+
+            if (block.type == "REFRIGERATOR")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, BLUE);
         }
     }

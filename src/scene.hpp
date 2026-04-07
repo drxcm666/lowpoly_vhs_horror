@@ -1,6 +1,7 @@
 #pragma once
 
 #include "level_types.hpp"
+#include "audio.hpp"
 
 #include <vector>
 
@@ -13,6 +14,7 @@ struct ModelInstance
     Vector3 scale;
     Color tint;
     bool Culling{false};
+    bool positionLock{true};
 };
 
 class Scene
@@ -22,12 +24,14 @@ private:
     std::vector<Door> doors_;
     std::vector<TriggerZone> triggers_;
     std::vector<Interactable> interactables_;
+    std::vector<AudioEmitter> emitters_;
 
     const float tileSize_{4.0f};
     int levelWidthTiles_{0};
     int levelHeightTiles_{0};
 
     std::vector<ModelInstance> models_;
+
     // Shader pipeline is temporarily disabled.
     // Shader lightingShader_;
     // int lightPosLoc_;
@@ -35,15 +39,13 @@ private:
     // int viewPosLoc_;
     // Vector3 lampPosition_;
 
-    void parseCollision(const std::string &path);
-
 public:
     Scene() = default;
     ~Scene();
 
     void renderWorld(const Camera3D &camera, bool showDebug) const;
     void loadEnvironment();
-    void loadCollisionFile(const std::string &path);
+    void parseCollision(const std::string &path);
     bool checkCollision(const Vector3 &playerPos, float playerRadius) const;
 
     std::vector<TriggerZone> &getTriggers() { return triggers_; }

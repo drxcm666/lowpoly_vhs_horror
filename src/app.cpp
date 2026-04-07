@@ -3,6 +3,7 @@
 App::App(int screenWidth, int screenHeight)
 {
     InitWindow(screenWidth, screenHeight, "Game");
+    InitAudioDevice();
     DisableCursor();
     SetTargetFPS(60);
 
@@ -11,6 +12,7 @@ App::App(int screenWidth, int screenHeight)
 
 App::~App()
 {
+    CloseAudioDevice();
     CloseWindow();
 }
 
