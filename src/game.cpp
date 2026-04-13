@@ -4,15 +4,22 @@
 #include <cmath>
 #include <cstddef>
 
-Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas station"}
+Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas station"},
+               stepLength_{1.8f}, distanceAccumulator_{0.0f}
 {
     Vector3 startPos = player_.getPosition();
     scene_.parseCollision("assets/levels/room01_collision.txt");
+    scene_.parseLightening("assets/shaders/lighting.txt");
     scene_.loadEnvironment();
     player_.setPosition(startPos);
     player_.syncCamera();
     audioManager_.loadFromManifest("assets/music/audio_manifest.txt");
     audioManager_.parseEmitters("assets/levels/emitters.txt");
+
+    audioManager_.setCurrentZone("OUTDOOR");
+    audioManager_.playEmitter("mus_store_sign");
+    audioManager_.playMusic("mus_background");
+    audioManager_.playMusic("mus_cricket");
 }
 
 float Game::getInteractionScore(const Vector3 &targetPos, float maxDistance) const
@@ -40,6 +47,8 @@ float Game::getInteractionScore(const Vector3 &targetPos, float maxDistance) con
 
 void Game::updatePlayerMovement(float dt)
 {
+    Vector3 oldPos = player_.getPosition();
+
     Vector2 wishDir = player_.getIntendedMoveDir();
 
     float stepX = wishDir.x * player_.getMoveSpeed() * dt;
@@ -62,10 +71,57 @@ void Game::updatePlayerMovement(float dt)
     Vector3 testPosX = {currentPos.x + stepX, currentPos.y, currentPos.z};
     if (!scene_.checkCollision(testPosX, radius))
         player_.applyMoveX(stepX);
+
+    Vector3 newPos = player_.getPosition();
+
+    Vector3 diff = {newPos.x - oldPos.x,
+                    newPos.y - oldPos.y,
+                    newPos.z - oldPos.z};
+
+    float distanceMoved = std::sqrt(diff.x * diff.x +
+                                    diff.y * diff.y +
+                                    diff.z * diff.z);
+
+    distanceAccumulator_ += distanceMoved;
+    if (distanceAccumulator_ >= stepLength_)
+    {
+        int num = GetRandomValue(1, 15);
+        std::string stepSound = "sfx_step_" + std::to_string(num);
+        audioManager_.playSound(stepSound);
+        distanceAccumulator_ -= stepLength_;
+    }
+}
+
+void Game::onZoneChanged()
+{
+    if (insideStore)
+    {
+        audioManager_.playEmitter("mus_refrigerator");
+        audioManager_.playEmitter("mus_radio");
+        audioManager_.playEmitter("mus_store_lamp");
+
+        audioManager_.muteMusic("mus_store_sign");
+        audioManager_.muteMusic("mus_background");
+        audioManager_.muteMusic("mus_cricket");
+    }
+    else
+    {
+        audioManager_.playEmitter("mus_store_sign");
+        audioManager_.playEmitter("mus_test");
+        audioManager_.playMusic("mus_background");
+        audioManager_.playMusic("mus_cricket");
+
+        audioManager_.muteMusic("mus_refrigerator");
+        audioManager_.muteMusic("mus_radio");
+        audioManager_.muteMusic("mus_store_lamp");
+    }
 }
 
 void Game::updateTriggers()
 {
+    bool wasInside = insideStore;
+    bool isInsideStoreNow = false;
+
     for (auto &trigger : scene_.getTriggers())
     {
         float cornerX = trigger.position.x - trigger.size.x / 2.0f;
@@ -75,15 +131,11 @@ void Game::updateTriggers()
         bool isInsideNow = CheckCollisionCircleRec(
             {player_.getPosition().x, player_.getPosition().z}, player_.getRadius(), triggerBox);
 
-        if (isInsideNow && !trigger.wasInsideLastFrame &&
-            (trigger.type == TriggerType::FrontDoors || trigger.type == TriggerType::BackDoors))
+        if (trigger.type == TriggerType::StoreArea && isInsideNow)
         {
-            insideStore = !insideStore;
-
-            if (insideStore && trigger.type == TriggerType::FrontDoors)
-            {
+            isInsideStoreNow = true;
+            if (!trigger.wasInsideLastFrame)
                 audioManager_.playSound("sfx_bell");
-            }
         }
 
         if (isInsideNow && !trigger.wasInsideLastFrame)
@@ -92,11 +144,6 @@ void Game::updateTriggers()
             {
                 objectiveText_ = "RUNNNNN";
             }
-            // else if (trigger.type == TriggerType::FrontDoors || trigger.type == TriggerType::BackDoors)
-            // {
-            //     audioManager_.playMusic("mus_background");
-            //     audioManager_.playMusic("mus_cricket");
-            // }
 
             trigger.active = false;
         }
@@ -110,29 +157,12 @@ void Game::updateTriggers()
             trigger.wasInsideLastFrame = true;
     }
 
-    if (insideStore)
-    {
-        audioManager_.playEmitter("mus_refrigerator");
-        audioManager_.playEmitter("mus_radio");
-        audioManager_.playEmitter("mus_store_lamp");
-        audioManager_.playEmitter("mus_coffee_machine");
-        
-        audioManager_.stopMusic("mus_store_sign");
-        audioManager_.stopMusic("mus_background");
-        audioManager_.stopMusic("mus_crickets");
-    }
-    else
-    {
-        audioManager_.playEmitter("mus_store_sign");
-        audioManager_.playEmitter("mus_test");
-        audioManager_.playMusic("mus_background");
-        audioManager_.playMusic("mus_cricket");
+    insideStore = isInsideStoreNow;
 
-        audioManager_.stopMusic("mus_refrigerator");
-        audioManager_.stopMusic("mus_radio");
-        audioManager_.stopMusic("mus_store_lamp");
-        audioManager_.stopMusic("mus_coffee_machine");
-    }
+    audioManager_.setCurrentZone(insideStore ? "INDOOR" : "OUTDOOR");
+
+    if (wasInside != insideStore)
+        onZoneChanged();
 }
 
 void Game::findFocusedTarget(int &outInteractableIndex, int &outDoorIndex)
@@ -174,8 +204,6 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
 
 void Game::update(float dt)
 {
-    game_dt = dt;
-
     currentPrompt_ = "";
 
     if (IsKeyPressed(KEY_K))
@@ -183,6 +211,13 @@ void Game::update(float dt)
 
     if (IsKeyPressed(KEY_F3))
         Game::toggleDebugMode();
+
+    if (IsKeyPressed(KEY_P))
+    {
+        TraceLog(LOG_INFO, "position x: %.3f", player_.getPosition().x);
+        TraceLog(LOG_INFO, "position y: %.3f", player_.getPosition().y);
+        TraceLog(LOG_INFO, "position z: %.3f", player_.getPosition().z);
+    }
 
     player_.updateLook();
 
@@ -202,14 +237,15 @@ void Game::update(float dt)
     audioManager_.update(dt);
 }
 
-void Game::render() const
+void Game::renderWorld() const
 {
     scene_.renderWorld(player_.getCamera(), isDebugMode_);
+}
 
-    int screenWidth = GetScreenWidth();
-    int screenHeight = GetScreenHeight();
-
+void Game::renderHud(int screenWidth, int screenHeight) const
+{
     DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
+    DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 95});
 
     if (!currentPrompt_.empty())
     {
@@ -221,3 +257,21 @@ void Game::render() const
         DrawText(objectiveText_.c_str(), 30, 30, 20, GOLD);
     }
 }
+
+// void Game::render(int screenWidth, int screenHeight) const
+// {
+//     scene_.renderWorld(player_.getCamera(), isDebugMode_);
+
+//     DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
+//     DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 95});
+
+//     if (!currentPrompt_.empty())
+//     {
+//         int textWidth = MeasureText(currentPrompt_.c_str(), 20);
+//         DrawText(currentPrompt_.c_str(), (screenWidth - textWidth) / 2, screenHeight / 2 - 40, 20, RAYWHITE);
+//     }
+//     if (!objectiveText_.empty())
+//     {
+//         DrawText(objectiveText_.c_str(), 30, 30, 20, GOLD);
+//     }
+// }

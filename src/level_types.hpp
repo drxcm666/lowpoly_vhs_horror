@@ -22,8 +22,9 @@ struct Door
 
 enum class TriggerType
 {
-    FrontDoors,
-    BackDoors,
+    // FrontDoors,
+    // BackDoors,
+    StoreArea,
     Noise,
 };
 
@@ -58,14 +59,14 @@ struct AudioEmitter
     float timer{0.0f};
     float minDelay{0.0f};
     float maxDelay{0.0f};
+    std::string zone{""};
     bool active{false};
 };
 
-// struct AudioEmitter
-// {
-//     std::string name;
-//     Vector3 position;
-//     float minDistance;
-//     float maxDistance;
-//     bool active{false};
-// };
+struct LightingFixtures
+{
+    std::string name;
+    int type;
+    Vector3 position;
+    std::string color;
+};

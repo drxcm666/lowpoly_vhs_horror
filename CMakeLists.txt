@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(vhs_horror LANGUAGES CXX)
 
 include(FetchContent)
@@ -23,4 +24,8 @@ add_executable(MyGame
 
 target_link_libraries(MyGame PRIVATE 
     raylib
+)
+
+target_include_directories(MyGame PRIVATE
+    "${CMAKE_SOURCE_DIR}/assets/shaders"
 )

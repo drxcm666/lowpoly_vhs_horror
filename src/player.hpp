@@ -18,7 +18,7 @@ private:
 public:
     Player();
 
-    void setPosition(const Vector3 &pos) { position_ = pos; };
+    void setPosition(const Vector3 &pos) { position_ = pos; syncCamera(); };
 
     void updateLook();
     Vector2 getIntendedMoveDir();
@@ -28,9 +28,8 @@ public:
     void syncCamera();
 
     const Vector3 &getPosition() const { return position_; }
-    const float getRadius() const { return radius_; }
+    float getRadius() const { return radius_; }
     const Camera3D &getCamera() const { return camera_; }
-    const float getMoveSpeed() const { return moveSpeed_; }
-
+    float getMoveSpeed() const { return moveSpeed_; }
     Vector3 getForwardVector() const;
 };

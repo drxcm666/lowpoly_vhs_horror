@@ -2,15 +2,17 @@
 #include "audio.hpp"
 
 #include "rlgl.h"
+#define RLIGHTS_IMPLEMENTATION
+#include "rlights.h"
 
 #include <sstream>
 
 Scene::~Scene()
 {
-    // UnloadShader(lightingShader_);
-
     for (const auto &i : models_)
         UnloadModel(i.model);
+
+    UnloadShader(lightShader_);
 }
 
 void Scene::loadEnvironment()
@@ -19,6 +21,36 @@ void Scene::loadEnvironment()
         UnloadModel(i.model);
 
     models_.clear();
+    lightSources_.clear();
+
+    lightShader_ = LoadShader("assets/shaders/lighting.vs", "assets/shaders/lighting.fs");
+    for (const auto &obj : lightSourcesTxt_)
+    {
+        Light light;
+        if (obj.color == "GOLD")
+        {
+            light = CreateLight(
+                obj.type,
+                {obj.position.x, obj.position.y, obj.position.z},
+                {0.0f, 0.0f, 0.0f},
+                YELLOW,
+                lightShader_);
+        }
+        if (obj.color == "WHITE")
+        {
+            light = CreateLight(
+                obj.type,
+                {obj.position.x, obj.position.y, obj.position.z},
+                {0.0f, 0.0f, 0.0f},
+                WHITE,
+                lightShader_);
+        }
+        lightSources_.push_back(light);
+    }
+    int ambientLoc = GetShaderLocation(lightShader_, "ambient");
+    // float ambientColor[4] = {0.24f, 0.26f, 0.30f, 1.0f};
+    float ambientColor[4] = {0.01f, 0.01f, 0.01f, 0.0f};
+    SetShaderValue(lightShader_, ambientLoc, ambientColor, SHADER_UNIFORM_VEC4);
 
     Color nightTint = {95, 92, 105, 255};
 
@@ -41,67 +73,24 @@ void Scene::loadEnvironment()
         {1.0f, 1.0f, 1.0f},
         nightTint,
         false};
+    for (int i = 0; i < gasModel.model.materialCount; i++)
+    {
+        gasModel.model.materials[i].shader = lightShader_;
+    }
     models_.push_back(gasModel);
 
-    ModelInstance gasBushesModel0{
-        LoadModel("assets/gas_station/bushes0.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        true};
-    models_.push_back(gasBushesModel0);
-
-    ModelInstance gasBushesModel1{
-        LoadModel("assets/gas_station/bushes1.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        true};
-    models_.push_back(gasBushesModel1);
-
-    ModelInstance gasBushesModel2{
-        LoadModel("assets/gas_station/bushes2.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        true};
-    models_.push_back(gasBushesModel2);
-
-    ModelInstance gasBushesModel3{
-        LoadModel("assets/gas_station/bushes3.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        true};
-    models_.push_back(gasBushesModel3);
-
-    ModelInstance gasBushesModel4{
-        LoadModel("assets/gas_station/bushes4.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        true};
-    models_.push_back(gasBushesModel4);
-
-    ModelInstance gasGlassModel{
-        LoadModel("assets/gas_station/glass.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        false};
-    models_.push_back(gasGlassModel);
+    for (int i = 0; i < 5; i++)
+    {
+        std::string path = "assets/gas_station/bushes" + std::to_string(i) + ".glb";
+        models_.push_back(ModelInstance{
+            LoadModel(path.c_str()),
+            {0.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            0.0f,
+            {1.0f, 1.0f, 1.0f},
+            nightTint,
+            true});
+    }
 
     ModelInstance man{
         LoadModel("assets/man/man.glb"),
@@ -113,11 +102,23 @@ void Scene::loadEnvironment()
         false};
     models_.push_back(man);
 
-    // Mesh skyMesh = GenMeshSphere(20.0f, 64, 64);
-    // skyModel_ = LoadModelFromMesh(skyMesh);
-    // skyTexture_ = LoadTexture("assets/sky3.png");
-    // skyModel_.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = skyTexture_;
-    // skyModel_.materials[0].params[MATERIAL_MAP_METALNESS] = 0;
+    // for (const auto &model : models_)
+    // {
+    //     for (int i = 0; i < model.model.materialCount; i++)
+    //     {
+    //         model.model.materials[i].shader = lightShader_;
+    //     }
+    // }
+
+    ModelInstance gasGlassModel{
+        LoadModel("assets/gas_station/glass.glb"),
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        0.0f,
+        {1.0f, 1.0f, 1.0f},
+        nightTint,
+        false};
+    models_.push_back(gasGlassModel);
 }
 
 bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
@@ -148,6 +149,72 @@ bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
     }
 
     return false;
+}
+
+void Scene::parseLightening(const std::string &path)
+{
+    char *lighteningText = LoadFileText(path.c_str());
+    if (lighteningText == nullptr)
+    {
+        TraceLog(LOG_ERROR, "Lightening file not found");
+        return;
+    }
+
+    std::stringstream rowStream(lighteningText);
+    std::string line;
+
+    lightSourcesTxt_.clear();
+
+    while (std::getline(rowStream, line, '\n'))
+    {
+        if (line.empty() || line.substr(0, 2) == "//")
+            continue;
+
+        LightingFixtures object;
+
+        std::stringstream wordStream(line);
+        std::string word;
+        int wordIndex{0};
+
+        while (wordStream >> word)
+        {
+            switch (wordIndex)
+            {
+            case 0:
+                object.name = word;
+                break;
+
+            case 1:
+                object.type = std::stoi(word);
+                break;
+
+            case 2:
+                object.position.x = std::stof(word);
+                break;
+
+            case 3:
+                object.position.y = std::stof(word);
+                break;
+
+            case 4:
+                object.position.z = std::stof(word);
+                break;
+
+            case 5:
+                object.color = word;
+                break;
+
+            default:
+                break;
+            }
+
+            wordIndex++;
+        }
+
+        lightSourcesTxt_.push_back(object);
+    }
+
+    UnloadFileText(lighteningText);
 }
 
 void Scene::parseCollision(const std::string &path)
@@ -200,27 +267,35 @@ void Scene::parseCollision(const std::string &path)
 
             wordIndex++;
         }
-        collisionBlocks_.push_back(block);
+
+        if (wordIndex < 7)
+            continue;
 
         if (block.type == "WORKER")
         {
             Interactable obj = {InteractiveType::Worker, block.position, true, "To talk"};
             interactables_.push_back(obj);
+            collisionBlocks_.push_back(block);
         }
-        if (block.type == "TRIGGER")
+        if (block.type == "STORE_AREA")
         {
-            TriggerZone obj = {TriggerType::Noise, block.position, block.size, true};
+            TriggerZone obj = {TriggerType::StoreArea, block.position, block.size, true};
             triggers_.push_back(obj);
         }
-        if (block.type == "FRONT_DOORS")
+        // if (block.type == "FRONT_DOORS")
+        // {
+        //     TriggerZone obj = {TriggerType::FrontDoors, block.position, block.size, true};
+        //     triggers_.push_back(obj);
+        // }
+        // if (block.type == "BACK_DOORS")
+        // {
+        //     TriggerZone obj = {TriggerType::BackDoors, block.position, block.size, true};
+        //     triggers_.push_back(obj);
+        // }
+        if (block.type == "WALL" || block.type == "ELSE" ||
+            block.type == "BORDERS")
         {
-            TriggerZone obj = {TriggerType::FrontDoors, block.position, block.size, true};
-            triggers_.push_back(obj);
-        }
-        if (block.type == "BACK_DOORS")
-        {
-            TriggerZone obj = {TriggerType::BackDoors, block.position, block.size, true};
-            triggers_.push_back(obj);
+            collisionBlocks_.push_back(block);
         }
     }
 
@@ -229,11 +304,12 @@ void Scene::parseCollision(const std::string &path)
 
 void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
 {
-    // Shader uniforms are temporarily disabled.
-    // float lampPosArray[3] = {lampPosition_.x, lampPosition_.y, lampPosition_.z};
-    // SetShaderValue(lightingShader_, lightPosLoc_, lampPosArray, SHADER_UNIFORM_VEC3);
-    // float cameraPosArray[3] = {camera.position.x, camera.position.y, camera.position.z};
-    // SetShaderValue(lightingShader_, viewPosLoc_, cameraPosArray, SHADER_UNIFORM_VEC3);
+    for (const auto &light : lightSources_)
+    {
+        UpdateLightValues(lightShader_, light);
+    }
+    float cameraPos[3] = {camera.position.x, camera.position.y, camera.position.z};
+    SetShaderValue(lightShader_, lightShader_.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
     BeginMode3D(camera);
 
@@ -268,11 +344,11 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
                     model.rotationAngle, model.scale, model.tint);
     }
 
-    for (const auto &door : doors_)
-    {
-        if (!door.isOpen)
-            DrawCube(door.position, door.size.x, door.size.y, door.size.z, BROWN);
-    }
+    // for (const auto &door : doors_)
+    // {
+    //     if (!door.isOpen)
+    //         DrawCube(door.position, door.size.x, door.size.y, door.size.z, BROWN);
+    // }
 
     if (showDebug)
     {
@@ -284,11 +360,11 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
             if (block.type == "BORDERS")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, RED);
 
-            if (block.type == "TRIGGER")
-                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, YELLOW);
+            // if (block.type == "TRIGGER")
+            //     DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, YELLOW);
 
-            if (block.type == "FRONT_DOORS" || block.type == "BACK_DOORS")
-                DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, ORANGE);
+            // if (block.type == "FRONT_DOORS" || block.type == "BACK_DOORS")
+            //     DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, ORANGE);
 
             if (block.type == "INTERACTIVE")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, PINK);
@@ -299,9 +375,23 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
             if (block.type == "REFRIGERATOR")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, BLUE);
         }
+
+        for (const auto &trigger : triggers_)
+        {
+            Color triggerColor = YELLOW;
+
+            // if (trigger.type == TriggerType::FrontDoors)
+            //     triggerColor = ORANGE;
+            // else if (trigger.type == TriggerType::BackDoors)
+            //     triggerColor = MAGENTA;
+
+            DrawCubeWires(trigger.position,
+                          trigger.size.x,
+                          trigger.size.y,
+                          trigger.size.z,
+                          triggerColor);
+        }
     }
 
     EndMode3D();
-
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{0, 0, 0, 95});
 }

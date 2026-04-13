@@ -26,11 +26,10 @@ private:
     AudioManager audioManager_;
     std::string currentPrompt_;
     std::string objectiveText_;
-
-    float game_dt{};
+    float stepLength_;
+    float distanceAccumulator_;
 
     bool insideStore{false};
-
     bool isDebugMode_{true};
     bool noclipEnabled_{false};
 
@@ -39,11 +38,14 @@ private:
     void updateTriggers();
     void findFocusedTarget(int &outInteractableIndex, int &outDoorIndex);
     void handleInteraction(int interactableIndex, int doorIndex);
+    void onZoneChanged();
 
 public:
     Game();
     void update(float dt);
-    void render() const;
+    void renderWorld() const;
+    void renderHud(int screenWidth, int screenHeight) const;
+    // void render(int screenWidth, int screenHeight) const;
     bool getDebugMode() { return isDebugMode_; }
     void toggleDebugMode() { isDebugMode_ = !isDebugMode_; }
 };

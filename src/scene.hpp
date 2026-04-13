@@ -3,6 +3,8 @@
 #include "level_types.hpp"
 #include "audio.hpp"
 
+#include "rlights.h"
+
 #include <vector>
 
 struct ModelInstance
@@ -24,20 +26,12 @@ private:
     std::vector<Door> doors_;
     std::vector<TriggerZone> triggers_;
     std::vector<Interactable> interactables_;
-    std::vector<AudioEmitter> emitters_;
-
-    const float tileSize_{4.0f};
-    int levelWidthTiles_{0};
-    int levelHeightTiles_{0};
 
     std::vector<ModelInstance> models_;
-
-    // Shader pipeline is temporarily disabled.
-    // Shader lightingShader_;
-    // int lightPosLoc_;
-    // int lightColorLoc_;
-    // int viewPosLoc_;
-    // Vector3 lampPosition_;
+    std::vector<LightingFixtures> lightSourcesTxt_;
+    std::vector<Light> lightSources_;
+    Shader lightShader_;
+    // Light light_;
 
 public:
     Scene() = default;
@@ -47,6 +41,7 @@ public:
     void loadEnvironment();
     void parseCollision(const std::string &path);
     bool checkCollision(const Vector3 &playerPos, float playerRadius) const;
+    void parseLightening(const std::string &path);
 
     std::vector<TriggerZone> &getTriggers() { return triggers_; }
     std::vector<Interactable> &getInteractables() { return interactables_; }

@@ -4,6 +4,7 @@
 /bin/
 /Debug/
 /Release/
+/assets/
 
 # CMake generated files
 CMakeCache.txt

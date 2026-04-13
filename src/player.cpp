@@ -3,9 +3,9 @@
 #include <cmath>
 
 Player::Player() : camera_{}, position_{-1.2f, 0.0f, -8.6f}, eyeHeight_{1.7f},
-               yaw_{0.0f}, pitch_{0.0f}, maxPitch_{1.5f},
-               lookSensitivity_{0.002f}, moveSpeed_{5.0f},
-               radius_{0.4f}
+                   yaw_{0.0f}, pitch_{0.0f}, maxPitch_{1.5f},
+                   lookSensitivity_{0.002f}, moveSpeed_{5.0f},
+                   radius_{0.4f}
 {
     camera_.up = {0.0f, 1.0f, 0.0f};
     camera_.fovy = 60.0f;
@@ -28,9 +28,8 @@ Vector3 Player::getForwardVector() const
 {
     return Vector3{
         static_cast<float>(cos(pitch_) * sin(yaw_)),
-        static_cast<float>(sin(pitch_)), 
-        static_cast<float>(cos(pitch_) * cos(yaw_))
-    };
+        static_cast<float>(sin(pitch_)),
+        static_cast<float>(cos(pitch_) * cos(yaw_))};
 }
 
 Vector2 Player::getIntendedMoveDir()
@@ -42,7 +41,7 @@ Vector2 Player::getIntendedMoveDir()
     // Right side vector
     float rightX = sin(yaw_ - PI / 2);
     float rightZ = cos(yaw_ - PI / 2);
-    
+
     // Direction indicator
     float moveDirX{0.0f};
     float moveDirZ{0.0f};
@@ -68,13 +67,6 @@ Vector2 Player::getIntendedMoveDir()
         moveDirX -= rightX;
     }
 
-    if (IsKeyPressed(KEY_P))
-    {
-        TraceLog(LOG_INFO, "position x: %.3f", getPosition().x);
-        TraceLog(LOG_INFO, "position y: %.3f", getPosition().y);
-        TraceLog(LOG_INFO, "position z: %.3f", getPosition().z);
-    }
-
     float length = std::sqrt(moveDirZ * moveDirZ + moveDirX * moveDirX);
     if (length > 0.0f)
     {
@@ -93,9 +85,7 @@ void Player::syncCamera()
 
     camera_.position = eyePosition;
 
-    Vector3 direction{cos(pitch_) * sin(yaw_),
-                      sin(pitch_),
-                      cos(pitch_) * cos(yaw_)};
+    Vector3 direction = getForwardVector();
 
     camera_.target = {eyePosition.x + direction.x,
                       eyePosition.y + direction.y,

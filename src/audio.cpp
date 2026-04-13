@@ -6,6 +6,8 @@
 
 void AudioManager::loadFromManifest(const std::string &path)
 {
+    clearAll();
+
     char *audioManifest = LoadFileText(path.c_str());
     if (audioManifest == nullptr)
     {
@@ -55,7 +57,10 @@ void AudioManager::playSound(const std::string &name)
 {
     auto it = soundMap_.find(name);
     if (it != soundMap_.end())
+    {
+        SetSoundVolume(it->second, 0.35f);
         PlaySound(it->second);
+    }
 }
 
 void AudioManager::playMusic(const std::string &name)
@@ -63,13 +68,14 @@ void AudioManager::playMusic(const std::string &name)
     auto it = musicMap_.find(name);
     if (it != musicMap_.end())
     {
+        SetMusicVolume(it->second, 0.8f);
         if (!IsMusicStreamPlaying(it->second))
             PlayMusicStream(it->second);
     }
 }
 
 void AudioManager::playMusic(const std::string &name,
-                             Vector3 position, float minDistance, float maxDistance)
+                             Vector3 position, float minDistance, float maxDistance, const std::string &zone)
 {
     auto it = musicMap_.find(name);
     if (it == musicMap_.end())
@@ -86,16 +92,21 @@ void AudioManager::playMusic(const std::string &name,
 
     float distance = std::sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
 
+    float volume = 0.0f;
     if (distance > maxDistance)
-        SetMusicVolume(music, 0.0f);
+        volume = 0.0f;
     else if (distance < minDistance)
-        SetMusicVolume(music, 0.8f);
+        volume = 0.8f;
     else
     {
-        float volume = 1.0f - ((distance - minDistance) / (maxDistance - minDistance));
+        volume = 1.0f - ((distance - minDistance) / (maxDistance - minDistance));
         volume = std::clamp(volume, 0.0f, 1.0f);
-        SetMusicVolume(music, volume);
     }
+
+    if (!zone.empty() && zone != currentZone_)
+        volume = 0.0f;
+
+    SetMusicVolume(music, volume);
 
     if (!IsMusicStreamPlaying(music))
         PlayMusicStream(music);
@@ -108,7 +119,19 @@ void AudioManager::stopMusic(const std::string &name)
         return;
 
     if (IsMusicStreamPlaying(it->second))
-        SetMusicVolume(it->second, 0.0f);
+        StopMusicStream(it->second);
+}
+
+void AudioManager::muteMusic(const std::string &name)
+{
+    auto it = musicMap_.find(name);
+    if (it == musicMap_.end())
+        return;
+
+    SetMusicVolume(it->second, 0.0f);
+
+    if (!IsMusicStreamPlaying(it->second))
+        PlayMusicStream(it->second);
 }
 
 void AudioManager::parseEmitters(const std::string &path)
@@ -134,43 +157,54 @@ void AudioManager::parseEmitters(const std::string &path)
         float tempX = 0.0f, tempY = 0.0f, tempZ = 0.0f;
         int wordIndex{0};
         AudioEmitter object;
-        while (wordStream >> word)
+
+        try
         {
-            if (wordIndex == 0)
-                object.name = word;
+            while (wordStream >> word)
+            {
+                if (wordIndex == 0)
+                    object.name = word;
 
-            if (wordIndex == 1)
-                tempX = std::stof(word);
+                if (wordIndex == 1)
+                    tempX = std::stof(word);
 
-            if (wordIndex == 2)
-                tempY = std::stof(word);
+                if (wordIndex == 2)
+                    tempY = std::stof(word);
 
-            if (wordIndex == 3)
-                tempZ = std::stof(word);
+                if (wordIndex == 3)
+                    tempZ = std::stof(word);
 
-            if (wordIndex == 4)
-                object.minDistance = std::stof(word);
+                if (wordIndex == 4)
+                    object.minDistance = std::stof(word);
 
-            if (wordIndex == 5)
-                object.maxDistance = std::stof(word);
+                if (wordIndex == 5)
+                    object.maxDistance = std::stof(word);
 
-            if (wordIndex == 6)
-                object.timer = std::stof(word);
+                if (wordIndex == 6)
+                    object.timer = std::stof(word);
 
-            if (wordIndex == 7)
-                object.minDelay = std::stof(word);
+                if (wordIndex == 7)
+                    object.minDelay = std::stof(word);
 
-            if (wordIndex == 8)
-                object.maxDelay = std::stof(word);
-                
-            if (wordIndex >= 4)
-                object.position = Vector3{tempX, tempY, tempZ};
-            
-            
-            wordIndex++;
+                if (wordIndex == 8)
+                    object.maxDelay = std::stof(word);
+
+                if (wordIndex == 9)
+                    object.zone = word;
+
+                if (wordIndex >= 4)
+                    object.position = Vector3{tempX, tempY, tempZ};
+
+                wordIndex++;
+            }
+        }
+        catch (const std::exception &e)
+        {
+            TraceLog(LOG_WARNING, "Bad emitter line");
+            continue;
         }
 
-        if (!object.name.empty() && (wordIndex >= 6))
+        if (!object.name.empty() && (wordIndex == 10))
             emittersMap_[object.name] = object;
     }
 
@@ -179,7 +213,7 @@ void AudioManager::parseEmitters(const std::string &path)
         if (pair.second.timer > 0.0f)
         {
             auto musicIt = musicMap_.find(pair.first);
-            if (musicIt != musicMap_.end()) 
+            if (musicIt != musicMap_.end())
                 musicIt->second.looping = false;
         }
     }
@@ -187,38 +221,65 @@ void AudioManager::parseEmitters(const std::string &path)
     UnloadFileText(emittersText);
 }
 
-void AudioManager::processTimeEmitters(const float dt)
+void AudioManager::processTimers(const float dt)
 {
     for (auto &pair : emittersMap_)
     {
-        if (pair.second.timer <= 0.0f)
-            continue;
-        
         std::string name = pair.second.name;
         std::string pref;
         if (name.length() >= 4)
             pref = name.substr(0, 4);
 
+        if (pair.second.maxDelay <= 0.0f)
+            continue;
+
         pair.second.timer -= dt;
         if (pair.second.timer <= 0)
         {
+            pair.second.timer = static_cast<float>(
+                    GetRandomValue(pair.second.minDelay, pair.second.maxDelay));
             if (pref == "sfx_")
             {
-                pair.second.timer = static_cast<float>(GetRandomValue(pair.second.minDelay, pair.second.maxDelay));
+                
                 auto sfx_idx = soundMap_.find(name);
                 if (sfx_idx == soundMap_.end())
-                    return;
+                    continue;
 
                 playSound(name);
             }
             else if (pref == "mus_")
             {
-                pair.second.timer = static_cast<float>(GetRandomValue(pair.second.minDelay, pair.second.maxDelay));
                 if (pair.second.position.has_value())
-                    playMusic(name, pair.second.position.value(), 
-                              pair.second.minDistance, pair.second.maxDistance);
+                    playMusic(name,
+                              pair.second.position.value(),
+                              pair.second.minDistance,
+                              pair.second.maxDistance,
+                              pair.second.zone);
                 else
                     playMusic(name);
+            }
+        }
+    }
+}
+
+void AudioManager::updatePositionalMusic()
+{
+    for (auto &pair : emittersMap_)
+    {
+        std::string name = pair.second.name;
+        std::string pref;
+        if (name.length() >= 4)
+            pref = name.substr(0, 4);
+        if (pref == "mus_" && pair.second.position.has_value())
+        {
+            auto musicIt = musicMap_.find(name);
+            if (musicIt != musicMap_.end() && IsMusicStreamPlaying(musicIt->second))
+            {
+                playMusic(name,
+                            pair.second.position.value(),
+                            pair.second.minDistance,
+                            pair.second.maxDistance,
+                            pair.second.zone);
             }
         }
     }
@@ -230,14 +291,19 @@ void AudioManager::playEmitter(const std::string &name)
     if (it == emittersMap_.end())
         return;
 
+    if (it->second.maxDelay > 0.0f)
+        return;
+
     if (it->second.position.has_value())
     {
-        playMusic(name, it->second.position.value(), 
-              emittersMap_[name].minDistance, emittersMap_[name].maxDistance);
+        playMusic(name,
+                  it->second.position.value(),
+                  it->second.minDistance,
+                  it->second.maxDistance,
+                  it->second.zone);
     }
     else
         playMusic(name);
-
 }
 
 void AudioManager::update(float dt)
@@ -248,7 +314,9 @@ void AudioManager::update(float dt)
             UpdateMusicStream(pair.second);
     }
 
-    processTimeEmitters(dt);
+    // processTimeEmitters(dt);
+    processTimers(dt);
+    updatePositionalMusic();
 }
 
 void AudioManager::clearAll()
@@ -266,6 +334,7 @@ void AudioManager::clearAll()
 
     soundMap_.clear();
     musicMap_.clear();
+    emittersMap_.clear();
 }
 
 AudioManager::~AudioManager()
