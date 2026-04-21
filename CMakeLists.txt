@@ -19,6 +19,7 @@ add_executable(MyGame
     src/scene.cpp
     src/player.cpp
     src/audio.cpp
+    src/dialogue_manager.cpp
 )
 
 

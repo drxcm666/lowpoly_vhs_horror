@@ -33,7 +33,7 @@ void Scene::loadEnvironment()
                 obj.type,
                 {obj.position.x, obj.position.y, obj.position.z},
                 {0.0f, 0.0f, 0.0f},
-                YELLOW,
+                ORANGE,
                 lightShader_);
         }
         if (obj.color == "WHITE")
@@ -48,7 +48,6 @@ void Scene::loadEnvironment()
         lightSources_.push_back(light);
     }
     int ambientLoc = GetShaderLocation(lightShader_, "ambient");
-    // float ambientColor[4] = {0.24f, 0.26f, 0.30f, 1.0f};
     float ambientColor[4] = {0.01f, 0.01f, 0.01f, 0.0f};
     SetShaderValue(lightShader_, ambientLoc, ambientColor, SHADER_UNIFORM_VEC4);
 
@@ -92,23 +91,19 @@ void Scene::loadEnvironment()
             true});
     }
 
-    ModelInstance man{
-        LoadModel("assets/man/man.glb"),
+    ModelInstance cashier{
+        LoadModel("assets/cashier/test1.glb"),
         {8.762f, 0.1f, -17.401f},
         {0.0f, 1.0f, 0.0f},
-        220.0f,
-        {0.6f, 0.6f, 0.6f},
+        265.0f,
+        {0.42f, 0.42f, 0.42f},
         nightTint,
         false};
-    models_.push_back(man);
-
-    // for (const auto &model : models_)
-    // {
-    //     for (int i = 0; i < model.model.materialCount; i++)
-    //     {
-    //         model.model.materials[i].shader = lightShader_;
-    //     }
-    // }
+    for (int i = 0; i < cashier.model.materialCount; i++)
+    {
+        cashier.model.materials[i].shader = lightShader_;
+    }
+    models_.push_back(cashier);
 
     ModelInstance gasGlassModel{
         LoadModel("assets/gas_station/glass.glb"),
@@ -282,6 +277,12 @@ void Scene::parseCollision(const std::string &path)
             TriggerZone obj = {TriggerType::StoreArea, block.position, block.size, true};
             triggers_.push_back(obj);
         }
+        if (block.type == "TELEPORT_TRIGGER")
+        {
+            TriggerZone obj = {TriggerType::Teleport, block.position, block.size, true};
+            triggers_.push_back(obj);
+        }
+
         // if (block.type == "FRONT_DOORS")
         // {
         //     TriggerZone obj = {TriggerType::FrontDoors, block.position, block.size, true};
@@ -300,6 +301,22 @@ void Scene::parseCollision(const std::string &path)
     }
 
     UnloadFileText(collisionText);
+}
+
+void Scene::resetInteractables()
+{
+    for (auto &t : triggers_)
+    {
+        t.active = true;
+    }
+    for (auto &i : interactables_)
+    {
+        i.active = true;
+    }
+}
+
+void applyMutations(int currentLoop)
+{
 }
 
 void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
@@ -344,12 +361,6 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
                     model.rotationAngle, model.scale, model.tint);
     }
 
-    // for (const auto &door : doors_)
-    // {
-    //     if (!door.isOpen)
-    //         DrawCube(door.position, door.size.x, door.size.y, door.size.z, BROWN);
-    // }
-
     if (showDebug)
     {
         for (const auto &block : collisionBlocks_)
@@ -359,12 +370,6 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
 
             if (block.type == "BORDERS")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, RED);
-
-            // if (block.type == "TRIGGER")
-            //     DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, YELLOW);
-
-            // if (block.type == "FRONT_DOORS" || block.type == "BACK_DOORS")
-            //     DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, ORANGE);
 
             if (block.type == "INTERACTIVE")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, PINK);
@@ -379,11 +384,6 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
         for (const auto &trigger : triggers_)
         {
             Color triggerColor = YELLOW;
-
-            // if (trigger.type == TriggerType::FrontDoors)
-            //     triggerColor = ORANGE;
-            // else if (trigger.type == TriggerType::BackDoors)
-            //     triggerColor = MAGENTA;
 
             DrawCubeWires(trigger.position,
                           trigger.size.x,

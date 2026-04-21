@@ -19,6 +19,7 @@ public:
     Player();
 
     void setPosition(const Vector3 &pos) { position_ = pos; syncCamera(); };
+    void setYaw(float yaw) { yaw_ = yaw; syncCamera(); }
 
     void updateLook();
     Vector2 getIntendedMoveDir();

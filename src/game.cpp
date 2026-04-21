@@ -1,12 +1,17 @@
 #include "game.hpp"
 #include "scene.hpp"
+#include "dialogue_manager.hpp"
 
 #include <cmath>
 #include <cstddef>
 
 Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas station"},
-               stepLength_{1.8f}, distanceAccumulator_{0.0f}
+               stepLength_{1.8f}, distanceAccumulator_{0.0f}, loopIteration_{0}
 {
+    myFont_ = LoadFontEx("assets/font/VCR_OSD_MONO_1.001.ttf", 40, NULL, 0);
+    SetTextureFilter(myFont_.texture, TEXTURE_FILTER_POINT);
+    SetTextLineSpacing(40.0f);
+
     Vector3 startPos = player_.getPosition();
     scene_.parseCollision("assets/levels/room01_collision.txt");
     scene_.parseLightening("assets/shaders/lighting.txt");
@@ -15,6 +20,7 @@ Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas stati
     player_.syncCamera();
     audioManager_.loadFromManifest("assets/music/audio_manifest.txt");
     audioManager_.parseEmitters("assets/levels/emitters.txt");
+    dialogue_.loadDialogue();
 
     audioManager_.setCurrentZone("OUTDOOR");
     audioManager_.playEmitter("mus_store_sign");
@@ -94,7 +100,7 @@ void Game::updatePlayerMovement(float dt)
 
 void Game::onZoneChanged()
 {
-    if (insideStore)
+    if (insideStore_)
     {
         audioManager_.playEmitter("mus_refrigerator");
         audioManager_.playEmitter("mus_radio");
@@ -119,7 +125,7 @@ void Game::onZoneChanged()
 
 void Game::updateTriggers()
 {
-    bool wasInside = insideStore;
+    bool wasInside = insideStore_;
     bool isInsideStoreNow = false;
 
     for (auto &trigger : scene_.getTriggers())
@@ -138,14 +144,12 @@ void Game::updateTriggers()
                 audioManager_.playSound("sfx_bell");
         }
 
-        if (isInsideNow && !trigger.wasInsideLastFrame)
+        if (trigger.type == TriggerType::Teleport && isInsideNow && !trigger.wasInsideLastFrame)
         {
-            if (trigger.type == TriggerType::Noise && state_ == GameState::NOISE)
-            {
-                objectiveText_ = "RUNNNNN";
-            }
-
-            trigger.active = false;
+            player_.setPosition(Vector3{12.613f, 0.0f, -27.519});
+            player_.setYaw(-PI / 2.0f);
+            scene_.resetInteractables();
+            loopIteration_++;
         }
 
         if (!isInsideNow)
@@ -157,11 +161,11 @@ void Game::updateTriggers()
             trigger.wasInsideLastFrame = true;
     }
 
-    insideStore = isInsideStoreNow;
+    insideStore_ = isInsideStoreNow;
 
-    audioManager_.setCurrentZone(insideStore ? "INDOOR" : "OUTDOOR");
+    audioManager_.setCurrentZone(insideStore_ ? "INDOOR" : "OUTDOOR");
 
-    if (wasInside != insideStore)
+    if (wasInside != insideStore_)
         onZoneChanged();
 }
 
@@ -192,12 +196,26 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
     {
         currentPrompt_ = scene_.getInteractables()[interactableIndex].promptText;
 
+        if (dialogue_.getTargetText() != currentPrompt_)
+        {
+            dialogue_.startConversation(currentPrompt_);
+        }
+
         if (IsKeyPressed(KEY_E) &&
             (scene_.getInteractables()[interactableIndex].type == InteractiveType::Worker))
         {
             scene_.getInteractables()[interactableIndex].active = false;
-            state_ = GameState::NOISE;
-            objectiveText_ = "Check for strange noises near fuel pumps";
+            state_ = GameState::DIALOGUE;
+            // objectiveText_ = "Check for strange noises near fuel pumps";
+            dialogue_.startConversation("start");
+        }
+    }
+    else
+    {
+        if (state_ != GameState::DIALOGUE &&
+            dialogue_.getTargetText() != currentPrompt_)
+        {
+            dialogue_.clear();
         }
     }
 }
@@ -205,6 +223,8 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
 void Game::update(float dt)
 {
     currentPrompt_ = "";
+
+    dialogue_.update(dt, audioManager_);
 
     if (IsKeyPressed(KEY_K))
         noclipEnabled_ = !noclipEnabled_;
@@ -242,36 +262,16 @@ void Game::renderWorld() const
     scene_.renderWorld(player_.getCamera(), isDebugMode_);
 }
 
-void Game::renderHud(int screenWidth, int screenHeight) const
+void Game::renderHud(int screenWidth, int screenHeight)
 {
+    dialogue_.setStyle(myFont_, screenWidth, screenHeight, 40.0f, WHITE, BLACK, 4.0f);
     DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
     DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 95});
 
-    if (!currentPrompt_.empty())
-    {
-        int textWidth = MeasureText(currentPrompt_.c_str(), 20);
-        DrawText(currentPrompt_.c_str(), (screenWidth - textWidth) / 2, screenHeight / 2 - 40, 20, RAYWHITE);
-    }
+    dialogue_.render();
+
     if (!objectiveText_.empty())
     {
-        DrawText(objectiveText_.c_str(), 30, 30, 20, GOLD);
+        DrawTextEx(myFont_, objectiveText_.c_str(), {30.0f, 30.0f}, 20.0f, 1.0f, GOLD);
     }
 }
-
-// void Game::render(int screenWidth, int screenHeight) const
-// {
-//     scene_.renderWorld(player_.getCamera(), isDebugMode_);
-
-//     DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
-//     DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 95});
-
-//     if (!currentPrompt_.empty())
-//     {
-//         int textWidth = MeasureText(currentPrompt_.c_str(), 20);
-//         DrawText(currentPrompt_.c_str(), (screenWidth - textWidth) / 2, screenHeight / 2 - 40, 20, RAYWHITE);
-//     }
-//     if (!objectiveText_.empty())
-//     {
-//         DrawText(objectiveText_.c_str(), 30, 30, 20, GOLD);
-//     }
-// }

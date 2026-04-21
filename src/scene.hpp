@@ -31,7 +31,6 @@ private:
     std::vector<LightingFixtures> lightSourcesTxt_;
     std::vector<Light> lightSources_;
     Shader lightShader_;
-    // Light light_;
 
 public:
     Scene() = default;
@@ -42,6 +41,8 @@ public:
     void parseCollision(const std::string &path);
     bool checkCollision(const Vector3 &playerPos, float playerRadius) const;
     void parseLightening(const std::string &path);
+    void resetInteractables();
+    void applyMutations(int currentLoop);
 
     std::vector<TriggerZone> &getTriggers() { return triggers_; }
     std::vector<Interactable> &getInteractables() { return interactables_; }

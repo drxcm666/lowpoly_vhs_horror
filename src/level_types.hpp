@@ -24,6 +24,7 @@ enum class TriggerType
 {
     // FrontDoors,
     // BackDoors,
+    Teleport,
     StoreArea,
     Noise,
 };
