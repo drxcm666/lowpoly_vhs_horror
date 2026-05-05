@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-Player::Player() : camera_{}, position_{9.0f, 0.0f, -17.401f}, eyeHeight_{1.7f},
+Player::Player() : camera_{}, position_{6.663f, 0.0f, -20.918f}, eyeHeight_{1.7f},
                    yaw_{-PI / 2.0}, pitch_{0.0f}, maxPitch_{1.5f},
                    lookSensitivity_{0.002f}, moveSpeed_{5.0f},
                    radius_{0.4f}

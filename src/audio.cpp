@@ -205,7 +205,10 @@ void AudioManager::parseEmitters(const std::string &path)
         }
 
         if (!object.name.empty() && (wordIndex == 10))
+        {
+            object.active = true;
             emittersMap_[object.name] = object;
+        }
     }
 
     for (const auto &pair : emittersMap_)
@@ -225,6 +228,11 @@ void AudioManager::processTimers(const float dt)
 {
     for (auto &pair : emittersMap_)
     {
+        if (!pair.second.active)
+        {
+            continue;
+        }
+        
         std::string name = pair.second.name;
         std::string pref;
         if (name.length() >= 4)

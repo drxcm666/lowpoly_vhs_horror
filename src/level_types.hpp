@@ -7,9 +7,11 @@
 
 struct CollisionBlock
 {
+    std::string type;
     Vector3 position;
     Vector3 size;
-    std::string type;
+    Vector3 basePosition;
+    Vector3 baseSize;
 };
 
 struct Door
@@ -24,8 +26,10 @@ enum class TriggerType
 {
     // FrontDoors,
     // BackDoors,
+    None,
     Teleport,
     StoreArea,
+    InsideDoor,
     Noise,
 };
 
@@ -49,6 +53,8 @@ struct Interactable
     Vector3 position;
     bool active{true};
     std::string promptText;
+    std::string dialogueNodeID;
+    Vector3 basePosition;
 };
 
 struct AudioEmitter
@@ -70,4 +76,5 @@ struct LightingFixtures
     int type;
     Vector3 position;
     std::string color;
+    std::string baseColor;
 };

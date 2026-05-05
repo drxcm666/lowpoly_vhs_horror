@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstddef>
 
-Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas station"},
+Game::Game() : state_{GameState::NORMAL}, objectiveText_{""},
                stepLength_{1.8f}, distanceAccumulator_{0.0f}, loopIteration_{0}
 {
     myFont_ = LoadFontEx("assets/font/VCR_OSD_MONO_1.001.ttf", 40, NULL, 0);
@@ -20,7 +20,7 @@ Game::Game() : state_{GameState::START}, objectiveText_{"Go inside the gas stati
     player_.syncCamera();
     audioManager_.loadFromManifest("assets/music/audio_manifest.txt");
     audioManager_.parseEmitters("assets/levels/emitters.txt");
-    dialogue_.loadDialogue();
+    dialogue_.loadFromJSON("assets/dialogues/case_1.json");
 
     audioManager_.setCurrentZone("OUTDOOR");
     audioManager_.playEmitter("mus_store_sign");
@@ -102,24 +102,30 @@ void Game::onZoneChanged()
 {
     if (insideStore_)
     {
-        audioManager_.playEmitter("mus_refrigerator");
-        audioManager_.playEmitter("mus_radio");
-        audioManager_.playEmitter("mus_store_lamp");
+        if (loopIteration_ != 2)
+        {
+            audioManager_.playEmitter("mus_refrigerator");
+            audioManager_.playEmitter("mus_radio");
+            audioManager_.playEmitter("mus_store_lamp");
 
-        audioManager_.muteMusic("mus_store_sign");
-        audioManager_.muteMusic("mus_background");
-        audioManager_.muteMusic("mus_cricket");
+            audioManager_.muteMusic("mus_store_sign");
+            audioManager_.muteMusic("mus_background");
+            audioManager_.muteMusic("mus_cricket");
+        }
     }
     else
     {
-        audioManager_.playEmitter("mus_store_sign");
-        audioManager_.playEmitter("mus_test");
-        audioManager_.playMusic("mus_background");
-        audioManager_.playMusic("mus_cricket");
+        if (loopIteration_ != 2)
+        {
+            audioManager_.playEmitter("mus_store_sign");
+            audioManager_.playEmitter("mus_test");
+            audioManager_.playMusic("mus_background");
+            audioManager_.playMusic("mus_cricket");
 
-        audioManager_.muteMusic("mus_refrigerator");
-        audioManager_.muteMusic("mus_radio");
-        audioManager_.muteMusic("mus_store_lamp");
+            audioManager_.muteMusic("mus_refrigerator");
+            audioManager_.muteMusic("mus_radio");
+            audioManager_.muteMusic("mus_store_lamp");
+        }
     }
 }
 
@@ -130,6 +136,8 @@ void Game::updateTriggers()
 
     for (auto &trigger : scene_.getTriggers())
     {
+        if (!trigger.active)
+            continue;
         float cornerX = trigger.position.x - trigger.size.x / 2.0f;
         float cornerZ = trigger.position.z - trigger.size.z / 2.0f;
 
@@ -146,10 +154,28 @@ void Game::updateTriggers()
 
         if (trigger.type == TriggerType::Teleport && isInsideNow && !trigger.wasInsideLastFrame)
         {
-            player_.setPosition(Vector3{12.613f, 0.0f, -27.519});
+            player_.setPosition(Vector3{9.488f, 0.0f, -27.501});
             player_.setYaw(-PI / 2.0f);
             scene_.resetInteractables();
             loopIteration_++;
+            if (loopIteration_ == 2)
+            {
+                dialogue_.loadFromJSON("assets/dialogues/case_2.json");
+            }
+            if (loopIteration_ == 3)
+            {
+                dialogue_.loadFromJSON("assets/dialogues/case_3.json");
+            }
+            if (loopIteration_ == 4)
+            {
+                dialogue_.loadFromJSON("assets/dialogues/case_4.json");
+            }
+            if (loopIteration_ == 5)
+            {
+                dialogue_.loadFromJSON("assets/dialogues/case_5.json");
+            }
+
+            scene_.applyMutations(loopIteration_, audioManager_);
         }
 
         if (!isInsideNow)
@@ -196,18 +222,12 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
     {
         currentPrompt_ = scene_.getInteractables()[interactableIndex].promptText;
 
-        if (dialogue_.getTargetText() != currentPrompt_)
-        {
-            dialogue_.startConversation(currentPrompt_);
-        }
-
         if (IsKeyPressed(KEY_E) &&
             (scene_.getInteractables()[interactableIndex].type == InteractiveType::Worker))
         {
             scene_.getInteractables()[interactableIndex].active = false;
             state_ = GameState::DIALOGUE;
-            // objectiveText_ = "Check for strange noises near fuel pumps";
-            dialogue_.startConversation("start");
+            dialogue_.startConversation(scene_.getInteractables()[interactableIndex].dialogueNodeID);
         }
     }
     else
@@ -220,11 +240,69 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
     }
 }
 
+void Game::handleGameEvent(const std::string &eventName)
+{
+    if (eventName == "change_objective")
+    {
+        objectiveText_ = "Check the strange noise outside.";
+    }
+
+    if (eventName == "event_check_pumps")
+    {
+        auto &triggers = scene_.getTriggers();
+        for (auto &trg : triggers)
+        {
+            if (trg.type == TriggerType::Teleport)
+            {
+                trg.active = true;
+                break;
+            }
+        }
+    }
+}
+
 void Game::update(float dt)
 {
     currentPrompt_ = "";
-
+    audioManager_.setListenerPosition(player_.getCamera().position);
+    audioManager_.update(dt);
     dialogue_.update(dt, audioManager_);
+    scene_.updateEnvironment(loopIteration_, player_.getPosition(), player_.getRadius());
+
+    switch (state_)
+    {
+    case GameState::NORMAL:
+    {
+        player_.updateLook();
+        updatePlayerMovement(dt);
+        player_.syncCamera();
+        updateTriggers();
+        int targetInteractableIndex = -1;
+        int targetDoorIndex = -1;
+        findFocusedTarget(targetInteractableIndex, targetDoorIndex);
+        handleInteraction(targetInteractableIndex, targetDoorIndex);
+    }
+    break;
+
+    case GameState::DIALOGUE:
+    {
+        if (!dialogue_.isActive())
+        {
+            state_ = GameState::NORMAL;
+        }
+
+        std::string currentEvent = dialogue_.popEvent();
+        if (!currentEvent.empty())
+        {
+            handleGameEvent(currentEvent);
+        }
+    }
+    break;
+
+    default:
+    {}
+    break;
+    }
 
     if (IsKeyPressed(KEY_K))
         noclipEnabled_ = !noclipEnabled_;
@@ -238,23 +316,6 @@ void Game::update(float dt)
         TraceLog(LOG_INFO, "position y: %.3f", player_.getPosition().y);
         TraceLog(LOG_INFO, "position z: %.3f", player_.getPosition().z);
     }
-
-    player_.updateLook();
-
-    updatePlayerMovement(dt);
-
-    player_.syncCamera();
-
-    updateTriggers();
-
-    int targetInteractableIndex = -1;
-    int targetDoorIndex = -1;
-    findFocusedTarget(targetInteractableIndex, targetDoorIndex);
-
-    handleInteraction(targetInteractableIndex, targetDoorIndex);
-
-    audioManager_.setListenerPosition(player_.getCamera().position);
-    audioManager_.update(dt);
 }
 
 void Game::renderWorld() const
@@ -264,6 +325,9 @@ void Game::renderWorld() const
 
 void Game::renderHud(int screenWidth, int screenHeight)
 {
+    int textWidth = MeasureText(currentPrompt_.c_str(), 20);
+    DrawText(currentPrompt_.c_str(), ((GetScreenWidth() - textWidth) / 2), ((GetScreenHeight()) / 2 + 20), 20, WHITE);
+
     dialogue_.setStyle(myFont_, screenWidth, screenHeight, 40.0f, WHITE, BLACK, 4.0f);
     DrawCircle(screenWidth / 2, screenHeight / 2, 3.0f, Fade(RAYWHITE, 0.5f));
     DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 95});

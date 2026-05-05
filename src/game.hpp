@@ -12,7 +12,7 @@
 
 enum class GameState
 {
-    START,
+    NORMAL,
     DIALOGUE,
     NOISE,
     ESCAPED
@@ -43,6 +43,7 @@ private:
     void findFocusedTarget(int &outInteractableIndex, int &outDoorIndex);
     void handleInteraction(int interactableIndex, int doorIndex);
     void onZoneChanged();
+    void handleGameEvent(const std::string &eventName);
 
 public:
     Game();

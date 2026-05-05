@@ -9,6 +9,7 @@
 
 struct ModelInstance
 {
+    std::string name;
     Model model;
     Vector3 position;
     Vector3 rotationAxis;
@@ -17,6 +18,10 @@ struct ModelInstance
     Color tint;
     bool Culling{false};
     bool positionLock{true};
+    Vector3 basePosition;
+    float baseRotationAngle;
+    Color baseTint;
+
 };
 
 class Scene
@@ -30,6 +35,7 @@ private:
     std::vector<ModelInstance> models_;
     std::vector<LightingFixtures> lightSourcesTxt_;
     std::vector<Light> lightSources_;
+    std::vector<Color> baseLightColors_;
     Shader lightShader_;
 
 public:
@@ -38,11 +44,13 @@ public:
 
     void renderWorld(const Camera3D &camera, bool showDebug) const;
     void loadEnvironment();
+    void resetEnvironment(AudioManager &audioManager_);
     void parseCollision(const std::string &path);
     bool checkCollision(const Vector3 &playerPos, float playerRadius) const;
+    void updateEnvironment(int currentLoop, const Vector3 &playerPos, float playerRadius);
     void parseLightening(const std::string &path);
     void resetInteractables();
-    void applyMutations(int currentLoop);
+    void applyMutations(int currentLoop, AudioManager &audioManager_);
 
     std::vector<TriggerZone> &getTriggers() { return triggers_; }
     std::vector<Interactable> &getInteractables() { return interactables_; }

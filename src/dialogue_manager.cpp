@@ -1,5 +1,7 @@
 #include "dialogue_manager.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <sstream>
 
 static std::string WrapTextToWidth(const std::string &text, Font font, float fontSize, float maxWidth)
@@ -50,7 +52,7 @@ static std::vector<std::string> SplitLines(const std::string &text)
 
 DialogueManager::DialogueManager()
     : timer_{0.0f}, speed_{0.05f}, currentIndex_{0},
-      selectedChoiceIndex_{0} {}
+      selectedChoiceIndex_{0}, choicesVisible_{false} {}
 
 void DialogueManager::setStyle(Font font, int screenWidth, int screenHeight,
                                float fontSize, Color mainColor,
@@ -85,6 +87,9 @@ void DialogueManager::startConversation(const std::string &nodeID)
     choicesVisible_ = false;
     wrappedChoices_.clear();
 
+    if (!it->second.triggerEvent.empty())
+        pendingEvent_ = it->second.triggerEvent;   
+
     float mainTextWrapWidth = static_cast<float>(screenWidth_ - 200);
     float choiceWrapWidth = static_cast<float>(screenWidth_ - 140);
 
@@ -109,15 +114,15 @@ void DialogueManager::update(float dt, AudioManager &audio)
 
     if (isTypingFinished_ == false)
     {
+        if (IsKeyPressed(KEY_E))
+        {
+            skip();
+            return;
+        }
+
         timer_ += dt;
         if ((timer_ >= speed_) && (currentIndex_ < targetText_.length()))
         {
-            if (IsKeyPressed(KEY_E))
-            {
-                skip();
-                return;
-            }
-
             visibleText_ += targetText_[currentIndex_];
             currentIndex_++;
             timer_ -= speed_;
@@ -128,8 +133,7 @@ void DialogueManager::update(float dt, AudioManager &audio)
             isTypingFinished_ = true;
         }
     }
-
-    if (isTypingFinished_ == true)
+    else if (isTypingFinished_ == true)
     {
         auto it = currentConversation_.find(currentNodeIndex_);
         if (it == currentConversation_.end())
@@ -165,6 +169,8 @@ void DialogueManager::update(float dt, AudioManager &audio)
 
             if (IsKeyPressed(KEY_E))
             {
+                if (!it->second.triggerEvent.empty())
+                    pendingEvent_ = it->second.triggerEvent;  
                 startConversation(it->second.choices[selectedChoiceIndex_].nextNodeID);
                 return;
             }
@@ -174,9 +180,14 @@ void DialogueManager::update(float dt, AudioManager &audio)
         {
             choicesVisible_ = true;
         }
-
-        // exit
     }
+}
+
+std::string DialogueManager::popEvent()
+{
+    std::string eventToReturn = pendingEvent_;
+    pendingEvent_.clear();
+    return eventToReturn;
 }
 
 void DialogueManager::skip()
@@ -188,16 +199,13 @@ void DialogueManager::skip()
 
 void DialogueManager::render()
 {
-    if (visibleText_.empty() && !choicesVisible_)
+    std::vector<std::string> seglist = SplitLines(visibleText_);
+    if (seglist.empty() && wrappedChoices_.empty())
         return;
-
-    // std::stringstream ss(visibleText_);
-    // std::string segment;
 
     float lineSpacing = 60.0f;
     float choiceGap = 25.0f;
     float anchorY = screenHeight_ - 50.0f;
-    std::vector<std::string> seglist = SplitLines(visibleText_);
     float mainTextHeight = seglist.size() * lineSpacing;
     float chooseTextHeight = 0.0f;
 
@@ -280,48 +288,50 @@ void DialogueManager::clear()
     visibleText_.clear();
     timer_ = 0.0f;
     currentIndex_ = 0;
+    currentNodeIndex_.clear();
+    selectedChoiceIndex_ = 0;
+    isTypingFinished_ = false;
+    choicesVisible_ = false;
+    wrappedChoices_.clear();
 }
 
-void DialogueManager::loadDialogue()
+void DialogueManager::loadFromJSON(const std::string &path)
 {
+    using json = nlohmann::json;
     currentConversation_.clear();
 
-    currentConversation_["start"] = {
-        "CASHIER",
-        "Good evening. How may I help you?",
-        {{"It's a strange evening today, isn't it?", "strange_evening"},
-         {"Column 2 - Full Tank", "full_tank1"}},
-        ""};
+    char *dialogueText = LoadFileText(path.c_str());
+    if (dialogueText == nullptr)
+    {
+        TraceLog(LOG_ERROR, "Dialogues file not found");
+        return;
+    }
 
-    currentConversation_["strange_evening"] = {
-        "CASHIER",
-        "No, it's just a regular evening, although...",
+    try
+    {
+        json j = json::parse(dialogueText);
+        UnloadFileText(dialogueText);
+
+        for (const auto &[key, val] : j.items())
         {
-            {" ", "strange_evening_2"},
-        },
-        "strange_evening_2"};
-    currentConversation_["strange_evening_2"] = {
-        "CASHIER",
-        "They were reporting on car thefts on the radio. Aren't you worried about yours?",
-        {
-            {},
-        },
-        ""};
-    currentConversation_["full_tank1"] = {
-        "CASHIER",
-        "That's $15.34.",
-        {},
-        "full_tank2"};
-    currentConversation_["full_tank2"] = {
-        "CASHIER",
-        "They're reporting on the radio about a car theft...",
-        {},
-        "full_tank3"};
-    currentConversation_["full_tank3"] = {
-        "CASHIER",
-        "Aren't you worried about yours?",
-        {
-            {},
-        },
-        ""};
+            DialogueNode node;
+            node.speakerName = val["speakerName"];
+            node.text = val["text"];
+            for (const auto &i : val["choices"])
+            {
+                DialogueChoice choice;
+                choice.text = i["text"];
+                choice.nextNodeID = i["nextNodeID"];
+                node.choices.push_back(choice);
+            }
+            node.nextLineId = val["nextLineId"];
+            if (val.contains("triggerEvent"))
+                node.triggerEvent = val["triggerEvent"];
+            currentConversation_[key] = node;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        TraceLog(LOG_ERROR, "JSON Parsing error: %s", e.what());
+    }
 }

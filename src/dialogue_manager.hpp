@@ -20,6 +20,7 @@ struct DialogueNode
     std::string text;
     std::vector<DialogueChoice> choices;
     std::string nextLineId;
+    std::string triggerEvent;
 };
 
 class DialogueManager
@@ -35,6 +36,7 @@ private:
     int selectedChoiceIndex_;
     bool isTypingFinished_;
     bool choicesVisible_;
+    std::string pendingEvent_;
 
     Font font_{};
     int screenWidth_{0};
@@ -56,11 +58,11 @@ public:
     void skip();
     void render();
     void clear();
-    void loadDialogue();
+    void loadFromJSON(const std::string &path);
+    std::string popEvent();
 
     const std::string &getTargetText() const { return targetText_; };
-    const std::string &getNodeText(const std::string &text)
-    {
-        return currentConversation_[text].text;
-    };
+    const std::string &getNodeText(const std::string &text) 
+        { return currentConversation_[text].text; }
+    bool isActive() const { return !targetText_.empty(); }
 };

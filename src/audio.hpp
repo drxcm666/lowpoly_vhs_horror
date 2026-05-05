@@ -24,7 +24,6 @@ private:
     Vector3 listenerPosition_{0.0f, 0.0f, 0.0f};
     std::string currentZone_;
 
-    // void processTimeEmitters(const float dt);
     void processTimers(const float dt);
     void updatePositionalMusic();
     void clearAll();
@@ -45,6 +44,7 @@ public:
     void setCurrentZone(const std::string &zone) { currentZone_ = zone; }
 
     auto &getEmitters() { return emittersMap_; }
+    auto &getMusic() { return musicMap_; }
 
     AudioManager() = default;
     ~AudioManager();
