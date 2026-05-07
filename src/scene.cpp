@@ -16,399 +16,6 @@ Scene::~Scene()
     UnloadShader(lightShader_);
 }
 
-void Scene::loadEnvironment()
-{
-    for (const auto &i : models_)
-        UnloadModel(i.model);
-
-    models_.clear();
-    lightSources_.clear();
-    baseLightColors_.clear();
-
-    lightShader_ = LoadShader("assets/shaders/lighting.vs", "assets/shaders/lighting.fs");
-    
-    for (const auto &obj : lightSourcesTxt_)
-    {
-        Light light;
-        Color baseColor = WHITE;
-        if (obj.color == "GOLD")
-        {
-            light = CreateLight(
-                obj.type,
-                {obj.position.x, obj.position.y, obj.position.z},
-                {0.0f, 0.0f, 0.0f},
-                ORANGE,
-                lightShader_);
-            baseColor = ORANGE;
-        }
-        if (obj.color == "WHITE")
-        {
-            light = CreateLight(
-                obj.type,
-                {obj.position.x, obj.position.y, obj.position.z},
-                {0.0f, 0.0f, 0.0f},
-                WHITE,
-                lightShader_);
-            baseColor = WHITE;
-        }
-        lightSources_.push_back(light);
-        baseLightColors_.push_back(baseColor);
-    }
-    int ambientLoc = GetShaderLocation(lightShader_, "ambient");
-    float ambientColor[4] = {0.01f, 0.01f, 0.01f, 0.0f};
-    SetShaderValue(lightShader_, ambientLoc, ambientColor, SHADER_UNIFORM_VEC4);
-
-    Color nightTint = {95, 92, 105, 255};
-
-    ModelInstance sky{
-        "sky",
-        LoadModel("assets/sky/sky.glb"),
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {10.0f, 10.0f, 10.0f},
-        nightTint,
-        false,
-        false,
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        nightTint};
-    models_.push_back(sky);
-
-    auto addStationPart = [this, &nightTint](const char *name, const char *path)
-    {
-        ModelInstance part{
-            name,
-            LoadModel(path),
-            {0.0f, 0.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f},
-            0.0f,
-            {1.0f, 1.0f, 1.0f},
-            nightTint,
-            false,
-            true,
-            {0.0f, 0.0f, 0.0f},
-            0.0f,
-            nightTint};
-
-        for (int i = 0; i < part.model.materialCount; i++)
-        {
-            part.model.materials[i].shader = lightShader_;
-        }
-
-        models_.push_back(part);
-    };
-
-    addStationPart("station", "assets/gas_station/station.glb");
-    addStationPart("ceiling", "assets/gas_station/ceiling.glb");
-    addStationPart("floor", "assets/gas_station/floor.glb");
-
-    for (int i = 0; i < 5; i++)
-    {
-        std::string path = "assets/gas_station/bushes" + std::to_string(i) + ".glb";
-        ModelInstance bush{
-            "bushes_" + std::to_string(i),
-            LoadModel(path.c_str()),
-            {0.0f, 0.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f},
-            0.0f,
-            {1.0f, 1.0f, 1.0f},
-            nightTint,
-            true,
-            true,
-            {0.0f, 0.0f, 0.0f},
-            0.0f,
-            nightTint};
-
-        for (int i = 0; i < bush.model.materialCount; i++)
-        {
-            bush.model.materials[i].shader = lightShader_;
-        }
-        models_.push_back(bush);
-    }
-
-    ModelInstance monster{
-        "monster",
-        LoadModel("assets/monster/monster.glb"),
-        {13.46f, -100.0f, 12.3f},
-        {1.0f, 0.0f, 0.0f},
-        90.0f,
-        {0.7f, 0.7f, 0.7f},
-        nightTint,
-        false,
-        true,
-        {13.46f, -100.0f, 12.3f},
-        90.0f,
-        nightTint};
-    for (int i = 0; i < monster.model.materialCount; i++)
-    {
-        monster.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(monster);
-
-    ModelInstance station_case_5{
-        "station_case_5",
-        LoadModel("assets/gas_station/station_case_5.glb"),
-        {0.0f, -100.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        false,
-        true,
-        {0.0f, -100.0f, 0.0f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < station_case_5.model.materialCount; i++)
-    {
-        station_case_5.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(station_case_5);
-
-    ModelInstance desk{
-        "desk",
-        LoadModel("assets/gas_station/desk.glb"),
-        {10.2f, 2.2f, -17.1f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {10.2f, 2.2f, -17.1f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < desk.model.materialCount; i++)
-    {
-        desk.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(desk);
-
-    ModelInstance camera_2{
-        "camera_2",
-        LoadModel("assets/gas_station/camera_2.glb"),
-        {10.0f, 3.6f, -18.5f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {10.0f, 3.6f, -18.5f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < camera_2.model.materialCount; i++)
-    {
-        camera_2.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(camera_2);
-
-    ModelInstance camera_1{
-        "camera_1",
-        LoadModel("assets/gas_station/camera_1.glb"),
-        {-0.3f, 3.6f, -24.25f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {-0.3f, 3.6f, -24.25f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < camera_1.model.materialCount; i++)
-    {
-        camera_1.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(camera_1);
-
-    ModelInstance lamps{
-        "lamps",
-        LoadModel("assets/gas_station/lamps.glb"),
-        {5.2f, 4.0f, -19.487f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {5.2f, 4.0f, -19.487f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < lamps.model.materialCount; i++)
-    {
-        lamps.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(lamps);
-
-    ModelInstance tv{
-        "tv",
-        LoadModel("assets/gas_station/tv.glb"),
-        {8.34f, 3.1f, -18.43f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {8.34f, 3.1f, -18.43f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < tv.model.materialCount; i++)
-    {
-        tv.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(tv);
-
-    ModelInstance refrigerator{
-        "refrigerator",
-        LoadModel("assets/gas_station/refrigerator.glb"),
-        {-1.33f, 1.6f, -18.83f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {-1.33f, 1.6f, -18.83f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < refrigerator.model.materialCount; i++)
-    {
-        refrigerator.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(refrigerator);
-
-    ModelInstance shelves{
-        "shelves",
-        LoadModel("assets/gas_station/shelves.glb"),
-        {2.5f, 1.2f, -19.45f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {2.5f, 1.2f, -19.45f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < shelves.model.materialCount; i++)
-    {
-        shelves.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(shelves);
-
-    ModelInstance coffee{
-        "coffee",
-        LoadModel("assets/gas_station/coffee.glb"),
-        {9.7f, 1.8f, -23.12f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {9.7f, 1.8f, -23.12f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < coffee.model.materialCount; i++)
-    {
-        coffee.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(coffee);
-
-    ModelInstance icecream{
-        "icecream",
-        LoadModel("assets/gas_station/icecream.glb"),
-        {6.23f, 1.0f, -24.0f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.00f},
-        nightTint,
-        false,
-        true,
-        {6.23f, 1.0f, -24.0f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < icecream.model.materialCount; i++)
-    {
-        icecream.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(icecream);
-
-    ModelInstance table{
-        "table",
-        LoadModel("assets/gas_station/table1.glb"),
-        {8.0f, 1.3f, -16.8f},
-        {0.0f, 1.0f, 0.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        false,
-        true,
-        {8.0f, 1.3f, -16.8f},
-        0.0f,
-        nightTint};
-    for (int i = 0; i < table.model.materialCount; i++)
-    {
-        table.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(table);
-
-    ModelInstance cashier{
-        "cashier",
-        LoadModel("assets/cashier/test1.glb"),
-        {8.762f, 0.1f, -17.401f},
-        {0.0f, 1.0f, 0.0f},
-        265.0f,
-        {0.42f, 0.42f, 0.42f},
-        nightTint,
-        false,
-        true,
-        {8.762f, 0.1f, -17.401f},
-        265.0f,
-        nightTint};
-    for (int i = 0; i < cashier.model.materialCount; i++)
-    {
-        cashier.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(cashier);
-
-    ModelInstance car{
-        "car",
-        LoadModel("assets/car/car.glb"),
-        {10.0f, 0.3f, 5.5f},
-        {0.0f, 1.0f, 0.0f},
-        90.0f,
-        {1.5f, 1.5f, 1.5f},
-        nightTint,
-        false,
-        true,
-        {10.0f, 0.3f, 5.5f},
-        90.0f,
-        nightTint};
-    for (int i = 0; i < car.model.materialCount; i++)
-    {
-        car.model.materials[i].shader = lightShader_;
-    }
-    models_.push_back(car);
-
-    ModelInstance gasGlassModel{
-        "glass",
-        LoadModel("assets/gas_station/glass.glb"),
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        0.0f,
-        {1.0f, 1.0f, 1.0f},
-        nightTint,
-        false,
-        true,
-        {0.0f, 0.0f, 0.0f},
-        0.0f,
-        nightTint};
-    models_.push_back(gasGlassModel);
-}
-
 bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
 {
     for (const auto &block : collisionBlocks_)
@@ -439,50 +46,128 @@ bool Scene::checkCollision(const Vector3 &playerPos, float playerRadius) const
     return false;
 }
 
-void Scene::updateEnvironment(int currentLoop, const Vector3 &playerPos, float playerRadius)
+bool Scene::updateEnvironment(
+    int currentLoop, const Vector3 &playerPos,
+    float playerRadius, AudioManager &audioManager_,
+    bool isLookingAtMonster, float dt)
 {
-    if (currentLoop == 5)
+    ModelInstance *station_m = nullptr;
+    ModelInstance *station_case_5_m = nullptr;
+    ModelInstance *monster_m = nullptr;
+    ModelInstance *monsterSecond_m = nullptr;
+    for (auto &model : models_)
     {
-        for (auto &trigger : triggers_)
+        if (model.name == "station")
         {
-            if (!trigger.active)
-                continue;
-
-            float cornerX = trigger.position.x - trigger.size.x / 2.0f;
-            float cornerZ = trigger.position.z - trigger.size.z / 2.0f;
-
-            bool isInsideNow = CheckCollisionCircleRec(
-                {playerPos.x, playerPos.z}, playerRadius, {cornerX, cornerZ, trigger.size.x, trigger.size.z});
-            if (isInsideNow && (trigger.type == TriggerType::InsideDoor))
-            {
-                trigger.active = false;
-
-                for (auto &block : collisionBlocks_)
-                {
-                    if (block.type == "BLOCK_DOOR" || block.type == "BLOCK_DOOR_2")
-                    {
-                        block.position.y = 0.0f;
-                    }
-                }
-                for (auto &model : models_)
-                {
-                    if (model.name == "station")
-                    {
-                        model.position.y = -100.0f;
-                    }
-                    if (model.name == "station_case_5")
-                    {
-                        model.position.y = 0.0f;
-                    }
-                    if (model.name == "monster")
-                    {
-                        model.position.y = 0.0f;
-                        model.model.transform = MatrixRotateXYZ({0.0f, 0.0f, 245.0f * DEG2RAD});
-                    }
-                }
-            }
+            station_m = &model;
+        }
+        if (model.name == "station_case_5")
+        {
+            station_case_5_m = &model;
+        }
+        if (model.name == "monster")
+        {
+            monster_m = &model;
+        }
+        if (model.name == "monsterSecond")
+        {
+            monsterSecond_m = &model;
         }
     }
+
+    Interactable *monster_i = nullptr;
+    for (auto &itr : interactables_)
+    {
+        if (itr.type == InteractiveType::Monster)
+        {
+            monster_i = &itr;
+        }
+    }
+
+    if (currentLoop != 5)
+        return gameOver_;
+
+    for (auto &trigger : triggers_)
+    {
+        if (!trigger.active)
+            continue;
+
+        float cornerX = trigger.position.x - trigger.size.x / 2.0f;
+        float cornerZ = trigger.position.z - trigger.size.z / 2.0f;
+
+        bool isInsideNow = CheckCollisionCircleRec(
+            {playerPos.x, playerPos.z}, playerRadius, {cornerX, cornerZ, trigger.size.x, trigger.size.z});
+        if (isInsideNow && (trigger.type == TriggerType::InsideDoor))
+        {
+            trigger.active = false;
+
+            for (auto &block : collisionBlocks_)
+            {
+                if (block.type == "BLOCK_DOOR" || block.type == "BLOCK_DOOR_2")
+                {
+                    block.position.y = 0.0f;
+                }
+            }
+
+            station_m->position.y = -100.0f;
+            station_case_5_m->position.y = 0.0f;
+            monster_m->position.y = 0.0f;
+            monster_m->model.transform = MatrixRotateXYZ({0.0f, 0.0f, 245.0f * DEG2RAD});
+
+            monster_i->position.y = 2.5f;
+        }
+    }
+
+    if (isLookingAtMonster && !isLookingAtMonsterLastFrame_)
+    {
+        viewCounts_++;
+    }
+
+    if (isLookingAtMonster)
+    {
+        lookTimer_ += dt;
+        isLookingAtMonsterLastFrame_ = true;
+    }
+    else
+    {
+        lookTimer_ = 0.0f;
+        isLookingAtMonsterLastFrame_ = false;
+    }
+
+    if (lookTimer_ >= 2)
+    {
+        (*monster_m).position.y = -100.0f;
+        (*monsterSecond_m).position = {playerPos.x, playerPos.y + 0.1f, playerPos.z - 2.8f};
+        monster_i->position = {playerPos.x, playerPos.y + 2.5f, playerPos.z - 2.8f};
+        audioManager_.makeSilence();
+    }
+
+    if (viewCounts_ == 2)
+    {
+        if (!jumpscarePlayedOnce_)
+        {
+            auto soundMap = audioManager_.getSound();
+            for (auto &sound : soundMap)
+            {
+                if (sound.first == "jumpscare")
+                {
+                    SetSoundVolume(sound.second, 1.0f);
+                    audioManager_.playSound("jumpscare");
+                }
+            }
+            jumpscarePlayedOnce_ = true;
+        }
+
+        lookTimer_ += dt;
+
+        if (lookTimer_ >= 3)
+        {
+            gameOver_ = true;
+            jumpscarePlayedOnce_ = false;
+            return gameOver_;
+        }
+    }
+    return gameOver_;
 }
 
 void Scene::parseLightening(const std::string &path)
@@ -550,7 +235,6 @@ void Scene::parseLightening(const std::string &path)
 
         lightSourcesTxt_.push_back(object);
     }
-
     UnloadFileText(lighteningText);
 }
 
@@ -617,6 +301,11 @@ void Scene::parseCollision(const std::string &path)
             interactables_.push_back(obj);
             collisionBlocks_.push_back(block);
         }
+        if (block.type == "MONSTER")
+        {
+            Interactable obj = {InteractiveType::Monster, block.position, true, "", "", block.position};
+            interactables_.push_back(obj);
+        }
         if (block.type == "STORE_AREA")
         {
             TriggerZone obj = {TriggerType::StoreArea, block.position, block.size, true};
@@ -682,11 +371,11 @@ void Scene::resetEnvironment(AudioManager &audioManager_)
             lightSources_[i].color = baseLightColors_[i];
         }
     }
-    
+
     int ambientLoc = GetShaderLocation(lightShader_, "ambient");
     float ambientColor[4] = {0.01f, 0.01f, 0.01f, 0.0f};
     SetShaderValue(lightShader_, ambientLoc, ambientColor, SHADER_UNIFORM_VEC4);
-    
+
     for (auto &music : audioManager_.getMusic())
     {
         SetMusicPitch(music.second, 1.0f);
@@ -728,19 +417,8 @@ void Scene::applyMutations(int currentLoop, AudioManager &audioManager_)
 
     case 2:
     {
-        auto &emtMap = audioManager_.getEmitters();
-        for (auto &emt : emtMap)
-        {
-            emt.second.active = false;
-        }
-        auto &musMap = audioManager_.getMusic();
-        for (auto &music : musMap)
-        {
-            if (IsMusicStreamPlaying(music.second))
-            {
-                audioManager_.stopMusic(music.first);
-            }
-        }
+        audioManager_.makeSilence();
+
         for (auto &itr : interactables_)
         {
             if (itr.type == InteractiveType::Worker)
@@ -827,13 +505,10 @@ void Scene::applyMutations(int currentLoop, AudioManager &audioManager_)
             }
 
             if (model.name == "floor")
-            {
                 floorPtr = &model.model.materials[1].maps[MATERIAL_MAP_ALBEDO].texture;
-            }
+
             if (model.name == "ceiling")
-            {
                 ceilingPtr = &model.model.materials[1].maps[MATERIAL_MAP_ALBEDO].texture;
-            }
         }
 
         if (floorPtr && ceilingPtr)
@@ -879,11 +554,25 @@ void Scene::applyMutations(int currentLoop, AudioManager &audioManager_)
         {
             light.color = RED;
         }
+
+        Texture2D *floorPtr = nullptr;
+        Texture2D *ceilingPtr = nullptr;
         for (auto &model : models_)
         {
             Color redTint = {65, 10, 10, 255};
             model.tint = redTint;
+
+            if (model.name == "floor")
+                floorPtr = &model.model.materials[1].maps[MATERIAL_MAP_ALBEDO].texture;
+
+            if (model.name == "ceiling")
+                ceilingPtr = &model.model.materials[1].maps[MATERIAL_MAP_ALBEDO].texture;
         }
+        if (floorPtr && ceilingPtr)
+        {
+            std::swap(*floorPtr, *ceilingPtr);
+        }
+
         float redPitch = 0.3f;
         for (auto &music : audioManager_.getMusic())
         {
@@ -980,7 +669,7 @@ void Scene::renderWorld(const Camera3D &camera, bool showDebug) const
     {
         for (const auto &block : collisionBlocks_)
         {
-            if (block.type == "WALL" || block.type == "BLOCK_BACK_DOOR")
+            if (block.type == "WALL" || block.type == "BLOCK_BACK_DOOR" || block.type == "MONSTER")
                 DrawCubeWires(block.position, block.size.x, block.size.y, block.size.z, GREEN);
 
             if (block.type == "BORDERS")

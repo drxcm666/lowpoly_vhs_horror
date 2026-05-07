@@ -195,14 +195,14 @@ void Game::updateTriggers()
         onZoneChanged();
 }
 
-void Game::findFocusedTarget(int &outInteractableIndex, int &outDoorIndex)
+void Game::findFocusedTarget(int &outInteractableIndex)
 {
     float bestScore = -1.0f;
 
     auto &interactables = scene_.getInteractables();
     for (std::size_t i = 0; i < interactables.size(); i++)
     {
-        if (interactables[i].active)
+        if (interactables[i].active && interactables[i].type == InteractiveType::Worker)
         {
             float score = getInteractionScore(interactables[i].position, 2.0f);
 
@@ -210,13 +210,22 @@ void Game::findFocusedTarget(int &outInteractableIndex, int &outDoorIndex)
             {
                 bestScore = score;
                 outInteractableIndex = i;
-                outDoorIndex = -1;
+            }
+        }
+        if (interactables[i].type == InteractiveType::Monster)
+        {
+            float score = getInteractionScore(interactables[i].position, 28.5f);
+
+            if (score > 0.9f && score > bestScore)
+            {
+                bestScore = score;
+                outInteractableIndex = i;
             }
         }
     }
 }
 
-void Game::handleInteraction(int interactableIndex, int doorIndex)
+void Game::handleInteraction(int interactableIndex)
 {
     if (interactableIndex != -1)
     {
@@ -229,6 +238,11 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
             state_ = GameState::DIALOGUE;
             dialogue_.startConversation(scene_.getInteractables()[interactableIndex].dialogueNodeID);
         }
+        if (scene_.getInteractables()[interactableIndex].type == InteractiveType::Monster)
+        {
+            isLookingAtMonster_ = true;
+            // objectiveText_ = "YES";
+        }
     }
     else
     {
@@ -237,6 +251,9 @@ void Game::handleInteraction(int interactableIndex, int doorIndex)
         {
             dialogue_.clear();
         }
+
+        isLookingAtMonster_ = false;
+        // objectiveText_ = "NO";
     }
 }
 
@@ -267,7 +284,12 @@ void Game::update(float dt)
     audioManager_.setListenerPosition(player_.getCamera().position);
     audioManager_.update(dt);
     dialogue_.update(dt, audioManager_);
-    scene_.updateEnvironment(loopIteration_, player_.getPosition(), player_.getRadius());
+    state_ = scene_.updateEnvironment(
+                 loopIteration_, player_.getPosition(),
+                 player_.getRadius(), audioManager_,
+                 isLookingAtMonster_, dt)
+                 ? GameState::END
+                 : state_;
 
     switch (state_)
     {
@@ -278,9 +300,8 @@ void Game::update(float dt)
         player_.syncCamera();
         updateTriggers();
         int targetInteractableIndex = -1;
-        int targetDoorIndex = -1;
-        findFocusedTarget(targetInteractableIndex, targetDoorIndex);
-        handleInteraction(targetInteractableIndex, targetDoorIndex);
+        findFocusedTarget(targetInteractableIndex);
+        handleInteraction(targetInteractableIndex);
     }
     break;
 
@@ -300,7 +321,8 @@ void Game::update(float dt)
     break;
 
     default:
-    {}
+    {
+    }
     break;
     }
 
@@ -320,7 +342,14 @@ void Game::update(float dt)
 
 void Game::renderWorld() const
 {
-    scene_.renderWorld(player_.getCamera(), isDebugMode_);
+    if (state_ != GameState::END)
+    {
+        scene_.renderWorld(player_.getCamera(), isDebugMode_);
+    }
+    else
+    {
+        ClearBackground(BLACK);
+    }
 }
 
 void Game::renderHud(int screenWidth, int screenHeight)

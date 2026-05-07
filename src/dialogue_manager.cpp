@@ -62,7 +62,6 @@ void DialogueManager::setStyle(Font font, int screenWidth, int screenHeight,
     screenWidth_ = screenWidth;
     screenHeight_ = screenHeight;
     mainFontSize_ = fontSize;
-    // chooseFontSize = ;
     mainColor_ = mainColor;
     outlineColor_ = outlineColor;
     outlineWidth_ = outlineWidth;

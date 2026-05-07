@@ -14,8 +14,7 @@ enum class GameState
 {
     NORMAL,
     DIALOGUE,
-    NOISE,
-    ESCAPED
+    END
 };
 
 class Game
@@ -33,15 +32,16 @@ private:
     int loopIteration_;
 
     bool insideStore_{false};
-    bool isDebugMode_{true};
+    bool isDebugMode_{false};
     bool noclipEnabled_{false};
+    bool isLookingAtMonster_{false};
     Font myFont_;
 
     float getInteractionScore(const Vector3 &targetPos, float maxDistance) const;
     void updatePlayerMovement(float dt);
     void updateTriggers();
-    void findFocusedTarget(int &outInteractableIndex, int &outDoorIndex);
-    void handleInteraction(int interactableIndex, int doorIndex);
+    void findFocusedTarget(int &outInteractableIndex);
+    void handleInteraction(int interactableIndex);
     void onZoneChanged();
     void handleGameEvent(const std::string &eventName);
 
@@ -50,7 +50,7 @@ public:
     void update(float dt);
     void renderWorld() const;
     void renderHud(int screenWidth, int screenHeight);
-    // void render(int screenWidth, int screenHeight) const;
     bool getDebugMode() { return isDebugMode_; }
+    GameState getGameState() { return state_; }
     void toggleDebugMode() { isDebugMode_ = !isDebugMode_; }
 };

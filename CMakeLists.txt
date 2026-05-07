@@ -29,6 +29,7 @@ add_executable(MyGame
     src/player.cpp
     src/audio.cpp
     src/dialogue_manager.cpp
+    src/download_textures.cpp
 )
 
 

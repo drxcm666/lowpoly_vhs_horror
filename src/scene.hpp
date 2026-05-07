@@ -21,7 +21,6 @@ struct ModelInstance
     Vector3 basePosition;
     float baseRotationAngle;
     Color baseTint;
-
 };
 
 class Scene
@@ -38,6 +37,13 @@ private:
     std::vector<Color> baseLightColors_;
     Shader lightShader_;
 
+    float lookTimer_{0.0f};
+    int viewCounts_{0};
+    bool isLookingAtMonsterLastFrame_{false};
+    bool jumpscarePlayedOnce_{false};
+
+    bool gameOver_{false};
+
 public:
     Scene() = default;
     ~Scene();
@@ -47,12 +53,15 @@ public:
     void resetEnvironment(AudioManager &audioManager_);
     void parseCollision(const std::string &path);
     bool checkCollision(const Vector3 &playerPos, float playerRadius) const;
-    void updateEnvironment(int currentLoop, const Vector3 &playerPos, float playerRadius);
+    bool updateEnvironment(
+        int currentLoop, const Vector3 &playerPos,
+        float playerRadius, AudioManager &audioManager_,
+        bool isLookingAtMonster, float dt);
     void parseLightening(const std::string &path);
     void resetInteractables();
     void applyMutations(int currentLoop, AudioManager &audioManager_);
 
     std::vector<TriggerZone> &getTriggers() { return triggers_; }
     std::vector<Interactable> &getInteractables() { return interactables_; }
-    std::vector<Door> &getDoors() { return doors_; }
+    const std::vector<CollisionBlock> &getCollisions() const { return collisionBlocks_; }
 };

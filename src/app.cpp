@@ -1,14 +1,21 @@
 #include "app.hpp"
 
-App::App(int screenWidth, int screenHeight)
+App::App()
 {
-    InitWindow(screenWidth, screenHeight, "Game");
+    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+
+    InitWindow(0, 0, "Game");
+
+    int monitor = GetCurrentMonitor();
+    SetWindowSize(GetMonitorWidth(monitor), GetMonitorHeight(monitor));
+    SetWindowPosition(0, 0);
+
     InitAudioDevice();
     DisableCursor();
     SetTargetFPS(60);
 
-    renderWidth_ = screenWidth / 3;
-    renderHeight_ = screenHeight / 3;
+    renderWidth_ = GetMonitorWidth(monitor) / 3;
+    renderHeight_ = GetMonitorHeight(monitor) / 3;
     renderTarget_ = LoadRenderTexture(renderWidth_, renderHeight_);
     SetTextureFilter(renderTarget_.texture, TEXTURE_FILTER_BILINEAR);
     
@@ -24,8 +31,12 @@ App::~App()
 
 void App::run()
 {
-    while (!WindowShouldClose())
+    auto state = game_->getGameState();
+    while (!WindowShouldClose() && !forceExit)
     {
+        if (game_->getGameState() == GameState::END)
+            forceExit = true;
+
         float dt = GetFrameTime();
 
         game_->update(dt);
@@ -33,7 +44,6 @@ void App::run()
         BeginTextureMode(renderTarget_);
         ClearBackground(Color{1, 1, 3, 255});
         game_->renderWorld();
-        // game_->renderHud(renderWidth_, renderHeight_);
         EndTextureMode();
 
         BeginDrawing();

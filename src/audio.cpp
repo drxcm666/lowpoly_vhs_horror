@@ -41,7 +41,9 @@ void AudioManager::loadFromManifest(const std::string &path)
         }
 
         if (object.type == "Sound")
+        {
             soundMap_[object.name] = LoadSound(object.path.c_str());
+        }
 
         if (object.type == "Music")
         {
@@ -58,7 +60,7 @@ void AudioManager::playSound(const std::string &name)
     auto it = soundMap_.find(name);
     if (it != soundMap_.end())
     {
-        SetSoundVolume(it->second, 0.35f);
+        SetSoundVolume(it->second, 0.2f);
         PlaySound(it->second);
     }
 }
@@ -132,6 +134,18 @@ void AudioManager::muteMusic(const std::string &name)
 
     if (!IsMusicStreamPlaying(it->second))
         PlayMusicStream(it->second);
+}
+
+void AudioManager::makeSilence()
+{
+    for (auto &pair : emittersMap_)
+    {
+        pair.second.active = false;
+    }
+    for (auto &music : musicMap_)
+    {
+        stopMusic(music.first);
+    }
 }
 
 void AudioManager::parseEmitters(const std::string &path)
@@ -232,7 +246,7 @@ void AudioManager::processTimers(const float dt)
         {
             continue;
         }
-        
+
         std::string name = pair.second.name;
         std::string pref;
         if (name.length() >= 4)
@@ -245,10 +259,10 @@ void AudioManager::processTimers(const float dt)
         if (pair.second.timer <= 0)
         {
             pair.second.timer = static_cast<float>(
-                    GetRandomValue(pair.second.minDelay, pair.second.maxDelay));
+                GetRandomValue(pair.second.minDelay, pair.second.maxDelay));
             if (pref == "sfx_")
             {
-                
+
                 auto sfx_idx = soundMap_.find(name);
                 if (sfx_idx == soundMap_.end())
                     continue;
@@ -284,10 +298,10 @@ void AudioManager::updatePositionalMusic()
             if (musicIt != musicMap_.end() && IsMusicStreamPlaying(musicIt->second))
             {
                 playMusic(name,
-                            pair.second.position.value(),
-                            pair.second.minDistance,
-                            pair.second.maxDistance,
-                            pair.second.zone);
+                          pair.second.position.value(),
+                          pair.second.minDistance,
+                          pair.second.maxDistance,
+                          pair.second.zone);
             }
         }
     }

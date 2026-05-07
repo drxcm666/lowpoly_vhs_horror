@@ -11,9 +11,10 @@ private:
     RenderTexture2D renderTarget_{};
     int renderWidth_{0};
     int renderHeight_{0};
+    bool forceExit{false};
 
 public:
-    App(int screenWidth = 1280, int screenHeight = 960);
+    App();
     ~App();
     void run();
 };

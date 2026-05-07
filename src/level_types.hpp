@@ -24,8 +24,6 @@ struct Door
 
 enum class TriggerType
 {
-    // FrontDoors,
-    // BackDoors,
     None,
     Teleport,
     StoreArea,
@@ -45,6 +43,7 @@ struct TriggerZone
 enum class InteractiveType
 {
     Worker,
+    Monster
 };
 
 struct Interactable

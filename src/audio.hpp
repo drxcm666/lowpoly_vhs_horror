@@ -39,12 +39,14 @@ public:
     void parseEmitters(const std::string &path);
     void muteMusic(const std::string &name);
     void stopMusic(const std::string &name);
+    void makeSilence();
 
     void setListenerPosition(Vector3 position) { listenerPosition_ = position; }
     void setCurrentZone(const std::string &zone) { currentZone_ = zone; }
 
     auto &getEmitters() { return emittersMap_; }
     auto &getMusic() { return musicMap_; }
+    auto &getSound() { return soundMap_; }
 
     AudioManager() = default;
     ~AudioManager();
