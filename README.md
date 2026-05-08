@@ -1,4 +1,4 @@
-# lowpoly_vhs_horror
+# lowpoly_vhs_horror [Alpha]
 
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=cplusplus&logoColor=white)
 ![raylib](https://img.shields.io/badge/raylib-5.0-orange)
