@@ -1,0 +1,173 @@
+{
+    "first_meeting": {
+        "speakerName": "CASHIER",
+        "text": "Good evening. You picked a quiet night to stop by.",
+        "choices": [
+            {
+                "text": "Yeah... feels a bit too quiet.",
+                "nextNodeID": "too_quiet"
+            },
+            {
+                "text": "Column 2. Full tank.",
+                "nextNodeID": "full_tank1"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "too_quiet": {
+        "speakerName": "CASHIER",
+        "text": "People say that when something feels off, it usually is.",
+        "choices": [],
+        "nextLineId": "too_quiet_2"
+    },
+
+    "too_quiet_2": {
+        "speakerName": "CASHIER",
+        "text": "We've had... some strange reports tonight.",
+        "choices": [
+            {
+                "text": "What kind of reports?",
+                "nextNodeID": "reports"
+            },
+            {
+                "text": "You're messing with me, right?",
+                "nextNodeID": "messing"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "reports": {
+        "speakerName": "CASHIER",
+        "text": "Cars left running. Drivers gone. No signs of struggle.",
+        "choices": [],
+        "nextLineId": "reports_2"
+    },
+
+    "reports_2": {
+        "speakerName": "CASHIER",
+        "text": "One of them was seen near this station.",
+        "choices": [],
+        "nextLineId": "",
+        "triggerEvent": "event_check_pumps"
+    },
+
+    "messing": {
+        "speakerName": "CASHIER",
+        "text": "I wish I was.",
+        "choices": [],
+        "nextLineId": "messing_2"
+    },
+
+    "messing_2": {
+        "speakerName": "CASHIER",
+        "text": "Just... don't stay outside longer than you need to.",
+        "choices": [],
+        "nextLineId": "",
+        "triggerEvent": "event_check_pumps"
+    },
+
+    "full_tank1": {
+        "speakerName": "CASHIER",
+        "text": "That'll be $15.34.",
+        "choices": [],
+        "nextLineId": "full_tank2"
+    },
+
+    "full_tank2": {
+        "speakerName": "CASHIER",
+        "text": "You might want to keep an eye on your car while you're out there.",
+        "choices": [
+            {
+                "text": "Why? Something happened?",
+                "nextNodeID": "car_warning"
+            },
+            {
+                "text": "Yeah, sure.",
+                "nextNodeID": "car_ignore"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "car_warning": {
+        "speakerName": "CASHIER",
+        "text": "Someone's been... watching the pumps tonight.",
+        "choices": [],
+        "nextLineId": "car_warning_2"
+    },
+
+    "car_warning_2": {
+        "speakerName": "CASHIER",
+        "text": "I saw them on the cameras. Couldn't make out a face.",
+        "choices": [],
+        "nextLineId": "",
+        "triggerEvent": "event_check_pumps"
+    },
+
+    "car_ignore": {
+        "speakerName": "CASHIER",
+        "text": "Suit yourself.",
+        "choices": [],
+        "nextLineId": "car_ignore_2"
+    },
+
+    "car_ignore_2": {
+        "speakerName": "CASHIER",
+        "text": "Just don't say I didn't warn you.",
+        "choices": [],
+        "nextLineId": "",
+        "triggerEvent": "event_check_pumps"
+    },
+
+
+
+
+
+    
+    "after_refuel": {
+        "speakerName": "CASHIER",
+        "text": "You're back sooner than I expected.",
+        "choices": [
+            {
+                "text": "Something's wrong outside.",
+                "nextNodeID": "outside_wrong"
+            },
+            {
+                "text": "Just paying.",
+                "nextNodeID": "just_paying"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "outside_wrong": {
+        "speakerName": "CASHIER",
+        "text": "...I told you.",
+        "choices": [],
+        "nextLineId": "outside_wrong_2"
+    },
+
+    "outside_wrong_2": {
+        "speakerName": "CASHIER",
+        "text": "Did you see it too?",
+        "choices": [],
+        "nextLineId": "",
+        "triggerEvent": "event_creepy_thud"
+    },
+
+    "just_paying": {
+        "speakerName": "CASHIER",
+        "text": "Right.",
+        "choices": [],
+        "nextLineId": "just_paying_2"
+    },
+
+    "just_paying_2": {
+        "speakerName": "CASHIER",
+        "text": "You should leave. Now.",
+        "choices": [],
+        "nextLineId": ""
+    }
+}

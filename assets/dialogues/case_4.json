@@ -1,0 +1,119 @@
+{
+    "blood": {
+        "speakerName": "CASHIER",
+        "text": "You're late.",
+        "choices": [
+            {
+                "text": "Late? For what?",
+                "nextNodeID": "late_1"
+            },
+            {
+                "text": "What happened to the lights?",
+                "nextNodeID": "lights_1"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "late_1": {
+        "speakerName": "CASHIER",
+        "text": "It already started. You did everything wrong.",
+        "choices": [],
+        "nextLineId": "late_2"
+    },
+
+    "late_2": {
+        "speakerName": "CASHIER",
+        "text": "Now everything sees you.",
+        "choices": [
+            {
+                "text": "What do you mean?",
+                "nextNodeID": "seen_1"
+            },
+            {
+                "text": "You're not making sense.",
+                "nextNodeID": "deny_1"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "lights_1": {
+        "speakerName": "CASHIER",
+        "text": "That's not the lights.",
+        "choices": [],
+        "nextLineId": "lights_2"
+    },
+
+    "lights_2": {
+        "speakerName": "CASHIER",
+        "text": "That's how it looks when it bleeds through.",
+        "choices": [
+            {
+                "text": "Bleeds through from where?",
+                "nextNodeID": "bleed_1"
+            },
+            {
+                "text": "You're saying this is normal?",
+                "nextNodeID": "normal_1"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "seen_1": {
+        "speakerName": "CASHIER",
+        "text": "You don't feel it yet?",
+        "choices": [],
+        "nextLineId": "seen_2"
+    },
+
+    "seen_2": {
+        "speakerName": "CASHIER",
+        "text": "The way it presses in. Like the air is watching.",
+        "choices": [],
+        "nextLineId": ""
+    },
+
+    "deny_1": {
+        "speakerName": "CASHIER",
+        "text": "You said the same thing the first time.",
+        "choices": [],
+        "nextLineId": "deny_2"
+    },
+
+    "deny_2": {
+        "speakerName": "CASHIER",
+        "text": "Before everything turned this color.",
+        "choices": [],
+        "nextLineId": ""
+    },
+
+    "bleed_1": {
+        "speakerName": "CASHIER",
+        "text": "From the other side of things.",
+        "choices": [],
+        "nextLineId": "bleed_2"
+    },
+
+    "bleed_2": {
+        "speakerName": "CASHIER",
+        "text": "Where it was always like this.",
+        "choices": [],
+        "nextLineId": ""
+    },
+
+    "normal_1": {
+        "speakerName": "CASHIER",
+        "text": "Normal is just what you're used to.",
+        "choices": [],
+        "nextLineId": "normal_2"
+    },
+
+    "normal_2": {
+        "speakerName": "CASHIER",
+        "text": "Stay long enough, and this will feel normal too.",
+        "choices": [],
+        "nextLineId": ""
+    }
+}

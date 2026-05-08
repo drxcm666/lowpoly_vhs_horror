@@ -1,0 +1,82 @@
+{
+    "upside_down_meeting": {
+        "speakerName": "CASHIER",
+        "text": "Good evening. You're standing in the wrong place, you know.",
+        "choices": [
+            {
+                "text": "...What is going on here?",
+                "nextNodeID": "confused_1"
+            },
+            {
+                "text": "Why are you on the ceiling?",
+                "nextNodeID": "ceiling_question"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "confused_1": {
+        "speakerName": "CASHIER",
+        "text": "Nothing unusual. Everything is where it's supposed to be.",
+        "choices": [],
+        "nextLineId": "confused_2"
+    },
+
+    "confused_2": {
+        "speakerName": "CASHIER",
+        "text": "You're the one out of place.",
+        "choices": [
+            {
+                "text": "No. You're the one upside down.",
+                "nextNodeID": "denial"
+            },
+            {
+                "text": "This isn't right.",
+                "nextNodeID": "not_right"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "ceiling_question": {
+        "speakerName": "CASHIER",
+        "text": "From here, it looks like you're the one on the ceiling.",
+        "choices": [],
+        "nextLineId": "ceiling_question_2"
+    },
+
+    "ceiling_question_2": {
+        "speakerName": "CASHIER",
+        "text": "Funny how perspective works, isn't it?",
+        "choices": [],
+        "nextLineId": ""
+    },
+
+    "denial": {
+        "speakerName": "CASHIER",
+        "text": "You should trust what you see. Not what you think you see.",
+        "choices": [],
+        "nextLineId": "denial_2"
+    },
+
+    "denial_2": {
+        "speakerName": "CASHIER",
+        "text": "Your eyes will adjust eventually.",
+        "choices": [],
+        "nextLineId": ""
+    },
+
+    "not_right": {
+        "speakerName": "CASHIER",
+        "text": "It wasn't always like this.",
+        "choices": [],
+        "nextLineId": "not_right_2"
+    },
+
+    "not_right_2": {
+        "speakerName": "CASHIER",
+        "text": "But once it flips... it doesn't go back.",
+        "choices": [],
+        "nextLineId": ""
+    }
+}

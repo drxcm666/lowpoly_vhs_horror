@@ -1,0 +1,98 @@
+{
+    "silent_return": {
+        "speakerName": "CASHIER",
+        "text": "Back already?",
+        "choices": [
+            {
+                "text": "Did the radio stop working?",
+                "nextNodeID": "silent_return_radio"
+            },
+            {
+                "text": "It's too quiet outside.",
+                "nextNodeID": "silent_return_quiet"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "silent_return_radio": {
+        "speakerName": "CASHIER",
+        "text": "Maybe. It does that sometimes.",
+        "choices": [],
+        "nextLineId": "silent_return_radio_2"
+    },
+
+    "silent_return_radio_2": {
+        "speakerName": "CASHIER",
+        "text": "Old wiring. Old speakers. Old building.",
+        "choices": [],
+        "nextLineId": "silent_return_radio_3"
+    },
+
+    "silent_return_radio_3": {
+        "speakerName": "CASHIER",
+        "text": "You hear every little thing when the sound cuts out.",
+        "choices": [
+            {
+                "text": "No... I mean everything stopped.",
+                "nextNodeID": "silent_return_everything"
+            },
+            {
+                "text": "You don't think that's strange?",
+                "nextNodeID": "silent_return_strange"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "silent_return_quiet": {
+        "speakerName": "CASHIER",
+        "text": "Some nights are quieter than others.",
+        "choices": [],
+        "nextLineId": "silent_return_quiet_2"
+    },
+
+    "silent_return_quiet_2": {
+        "speakerName": "CASHIER",
+        "text": "You notice it more when you're alone.",
+        "choices": [
+            {
+                "text": "It wasn't like this a minute ago.",
+                "nextNodeID": "silent_return_everything"
+            },
+            {
+                "text": "You really don't hear it?",
+                "nextNodeID": "silent_return_strange"
+            }
+        ],
+        "nextLineId": ""
+    },
+
+    "silent_return_everything": {
+        "speakerName": "CASHIER",
+        "text": "Then maybe you should stay inside for a minute.",
+        "choices": [],
+        "nextLineId": "silent_return_everything_2"
+    },
+
+    "silent_return_everything_2": {
+        "speakerName": "CASHIER",
+        "text": "It usually passes.",
+        "choices": [],
+        "nextLineId": ""
+    },
+
+    "silent_return_strange": {
+        "speakerName": "CASHIER",
+        "text": "Strange doesn't mean dangerous.",
+        "choices": [],
+        "nextLineId": "silent_return_strange_2"
+    },
+
+    "silent_return_strange_2": {
+        "speakerName": "CASHIER",
+        "text": "Not always.",
+        "choices": [],
+        "nextLineId": ""
+    }
+}

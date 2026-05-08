@@ -22,14 +22,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(raylib nlohmann_json)
 
 add_executable(MyGame
-    src/main.cpp
-    src/app.cpp
-    src/game.cpp
-    src/scene.cpp
-    src/player.cpp
-    src/audio.cpp
-    src/dialogue_manager.cpp
-    src/download_textures.cpp
+    project/src/main.cpp
+    project/src/app.cpp
+    project/src/game.cpp
+    project/src/scene.cpp
+    project/src/player.cpp
+    project/src/audio.cpp
+    project/src/dialogue_manager.cpp
+    project/src/scene_load.cpp
 )
 
 
@@ -39,6 +39,7 @@ target_link_libraries(MyGame PRIVATE
 )
 
 target_include_directories(MyGame PRIVATE
+    "${CMAKE_SOURCE_DIR}/project/include"
     "${CMAKE_SOURCE_DIR}/assets/shaders"
     "${CMAKE_SOURCE_DIR}/assets/dialogues"
 )
